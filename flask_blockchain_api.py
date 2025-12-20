@@ -7,6 +7,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from Blockchain import Blockchain, Block
 import json
+import atexit
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -14,6 +15,11 @@ CORS(app)  # Enable Cross-Origin requests from Node.js
 
 # Initialize blockchain
 blockchain = Blockchain()
+
+# Ensure database connection is closed on exit
+@atexit.register
+def cleanup():
+    blockchain.close()
 
 # ===========================================
 # API ENDPOINTS
@@ -61,7 +67,11 @@ def get_patient_blocks(patient_id):
     """Get all blocks for a specific patient"""
     patient_blocks = []
     for block in blockchain.chain:
-        if isinstance(block.data, dict) and block.data.get('patient ID') == patient_id:
+        # Check patient_id field (from database)
+        if block.patient_id == patient_id:
+            patient_blocks.append(block.to_dict())
+        # Also check data dict for backward compatibility
+        elif isinstance(block.data, dict) and block.data.get('patient ID') == patient_id:
             patient_blocks.append(block.to_dict())
     
     return jsonify({
@@ -80,15 +90,24 @@ def add_block():
         if not data:
             return jsonify({'error': 'No data provided'}), 400
         
-        # Add block to blockchain
-        blockchain.add_block(data)
+        # Extract blockchain-specific fields
+        patient_id = data.get('patient_id') or data.get('patient ID')
+        file_type = data.get('file_type') or data.get('File Type')
+        file_status = data.get('file_status') or data.get('File Status', 'Open')
+        ipfs_cid = data.get('cid') or data.get('ipfs_cid')
         
-        # Get the newly added block
-        latest_block = blockchain.get_latest_block()
+        # Add block to blockchain with database storage
+        new_block = blockchain.add_block(
+            data=data,
+            patient_id=patient_id,
+            file_type=file_type,
+            file_status=file_status,
+            ipfs_cid=ipfs_cid
+        )
         
         return jsonify({
             'message': 'Block added successfully',
-            'block': latest_block.to_dict()
+            'block': new_block.to_dict()
         }), 201
         
     except Exception as e:
@@ -130,10 +149,17 @@ def get_stats():
     # Count records by patient
     patient_counts = {}
     for block in blockchain.chain:
-        if isinstance(block.data, dict):
+        patient_id = None
+        
+        # Get patient_id from block field
+        if block.patient_id:
+            patient_id = block.patient_id
+        # Also check data dict for backward compatibility
+        elif isinstance(block.data, dict):
             patient_id = block.data.get('patient ID')
-            if patient_id:
-                patient_counts[patient_id] = patient_counts.get(patient_id, 0) + 1
+        
+        if patient_id:
+            patient_counts[patient_id] = patient_counts.get(patient_id, 0) + 1
     
     return jsonify({
         'total_blocks': total_blocks,

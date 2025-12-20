@@ -1,0 +1,29 @@
+ * Tip: There are .env files present. Install python-dotenv to use them.
+📦 Connected to PostgreSQL database
+📂 Blockchain loaded from database: 1 blocks
+╔════════════════════════════════════════════════╗
+║   Blockchain API Service                      ║
+║   Flask REST API                               ║
+╚════════════════════════════════════════════════╝
+
+🔗 Blockchain API running on: http://localhost:5000
+📦 Loaded blockchain with 1 blocks
+
+Available endpoints:
+  GET  /api/health                - Health check
+  GET  /api/blockchain            - Get entire chain
+  GET  /api/blockchain/latest     - Get latest block
+  GET  /api/blockchain/block/<id> - Get specific block
+  GET  /api/blockchain/patient/<id> - Get patient blocks
+  POST /api/blockchain/add        - Add new block
+  GET  /api/blockchain/validate   - Validate chain
+  GET  /api/blockchain/stats      - Get statistics
+
+Press Ctrl+C to stop
+════════════════════════════════════════════════
+ * Serving Flask app 'flask_blockchain_api'
+ * Debug mode: on
+Address already in use
+Port 5000 is in use by another program. Either identify and stop that program, or start the server with a different port.
+On macOS, try disabling the 'AirPlay Receiver' service from System Preferences -> General -> AirDrop & Handoff.
+🔌 Database connection closed
