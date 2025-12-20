@@ -1,0 +1,329 @@
+/**
+ * Admin Routes
+ * Handles admin dashboard, file upload, blockchain viewing
+ */
+
+import express from 'express';
+import crypto from 'crypto';
+import { getAllPatients, getUserByUsername, updatePatient, getAllBlocks, getPatientBlocks as getPatientBlocksDB, addBlock, getBlockchainStats } from '../utils/dbHelper.js';
+import { uploadMetadataToIPFS, fetchFromIPFS, checkIPFSConnection } from '../utils/ipfsHelper.js';
+import { addBlockToChain, getBlockchain } from '../utils/blockchainHelper.js';
+
+const router = express.Router();
+
+// ===========================================
+// MIDDLEWARE - Check if user is admin
+// ===========================================
+
+function requireAdmin(req, res, next) {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+        return res.status(403).render('error', {
+            title: 'Access Denied',
+            message: 'You do not have permission to access this page',
+            statusCode: 403
+        });
+    }
+    next();
+}
+
+// Apply middleware to all admin routes
+router.use(requireAdmin);
+
+// ===========================================
+// ADMIN DASHBOARD
+// ===========================================
+
+router.get('/dashboard', async (req, res) => {
+    try {
+        const patients = await getAllPatients();
+        const stats = await getBlockchainStats();
+        
+        res.render('admin/dashboard', {
+            title: 'Admin Dashboard',
+            user: req.session.user,
+            patients: patients,
+            stats: stats
+        });
+    } catch (error) {
+        console.error('Dashboard error:', error);
+        res.render('admin/dashboard', {
+            title: 'Admin Dashboard',
+            user: req.session.user,
+            patients: [],
+            stats: {}
+        });
+    }
+});
+
+// ===========================================
+// UPLOAD FILE PAGE
+// ===========================================
+
+router.get('/upload', async (req, res) => {
+    try {
+        const patients = await getAllPatients();
+        res.render('admin/upload', {
+            title: 'Upload Medical Record',
+            user: req.session.user,
+            patients: patients,
+            success: null,
+            error: null
+        });
+    } catch (error) {
+        console.error('Upload page error:', error);
+        res.status(500).send('Error loading upload page');
+    }
+});
+
+// ===========================================
+// UPLOAD FILE POST
+// ===========================================
+
+router.post('/upload', async (req, res) => {
+    try {
+        const patients = await getAllPatients();
+        const {
+            patient_id,
+            patient_name,
+            file_type,
+            disease,
+            description,
+            file_status,
+            next_appointment,
+            doctor,
+            uploaded_by,
+            file_base64, // Base64 encoded file
+            filename
+        } = req.body;
+        
+        // Validate required fields
+        if (!patient_id || !file_type || !uploaded_by || !disease || !doctor) {
+            return res.render('admin/upload', {
+                title: 'Upload Medical Record',
+                user: req.session.user,
+                patients: patients,
+                success: null,
+                error: 'Please fill all required fields'
+            });
+        }
+        
+        // Prepare complete metadata for IPFS (everything goes here)
+        const ipfsMetadata = {
+            filename: filename || 'N/A',
+            file_base64: file_base64 || null,
+            patient_id: patient_id,
+            patient_name: patient_name,
+            file_type: file_type,
+            disease: disease,
+            file_status: file_status || 'Open',
+            doctor: doctor,
+            uploaded_by: uploaded_by,
+            description: description || 'No description provided',
+            timestamp: new Date().toLocaleString()
+        };
+        
+        // Upload complete metadata + file to IPFS
+        console.log('📤 Uploading to IPFS...');
+        const cid = await uploadMetadataToIPFS(ipfsMetadata);
+        console.log('✅ IPFS CID:', cid);
+        
+        // Get last block to chain properly
+        const allBlocks = await getAllBlocks();
+        const lastBlock = allBlocks.length > 0 ? allBlocks[allBlocks.length - 1] : null;
+        const previousHash = lastBlock ? lastBlock.block_hash : '0';
+        
+        // Create block hash (simple hash for now - in production use proper hashing)
+        const blockData = `${allBlocks.length}${previousHash}${Date.now()}${cid}`;
+        const blockHash = crypto.createHash('sha256').update(blockData).digest('hex');
+        
+        // Store minimal data in database blockchain_metadata table
+        const blockchainData = {
+            block_hash: blockHash,
+            previous_hash: previousHash,
+            timestamp: Date.now(),
+            nonce: 0, // Simplified - no POW for now
+            ipfs_cid: cid,
+            patient_id: patient_id,
+            file_type: file_type,
+            file_status: file_status || 'Open'
+        };
+        
+        // Add to database
+        console.log('💾 Adding to database...');
+        const blockResult = await addBlock(blockchainData);
+        console.log('✅ Block added to DB:', blockResult.block_index);
+        
+        res.render('admin/upload', {
+            title: 'Upload Medical Record',
+            user: req.session.user,
+            patients: patients,
+            success: `File uploaded successfully! CID: ${cid} | Block: ${blockResult.block_index}`,
+            error: null
+        });
+        
+    } catch (error) {
+        console.error('Upload error:', error);
+        const patients = await getAllPatients();
+        res.render('admin/upload', {
+            title: 'Upload Medical Record',
+            user: req.session.user,
+            patients: patients,
+            success: null,
+            error: 'Upload failed: ' + error.message
+        });
+    }
+});
+
+// ===========================================
+// VIEW BLOCKCHAIN
+// ===========================================
+
+router.get('/blockchain', async (req, res) => {
+    try {
+        const chain = await getAllBlocks();
+        // Get last 10 blocks
+        const recentBlocks = chain.slice(-10).reverse();
+        
+        res.render('admin/blockchain', {
+            title: 'View Blockchain',
+            user: req.session.user,
+            blocks: recentBlocks,
+            totalBlocks: chain.length
+        });
+    } catch (error) {
+        console.error('Blockchain view error:', error);
+        res.render('admin/blockchain', {
+            title: 'View Blockchain',
+            user: req.session.user,
+            blocks: [],
+            totalBlocks: 0
+        });
+    }
+});
+
+// ===========================================
+// VIEW PATIENT RECORDS
+// ===========================================
+
+router.get('/patient-records/:patientId', async (req, res) => {
+    try {
+        const { patientId } = req.params;
+        const blocks = await getPatientBlocksDB(patientId);
+        
+        res.render('admin/patient-records', {
+            title: `Records for Patient ${patientId}`,
+            user: req.session.user,
+            patientId: patientId,
+            blocks: blocks
+        });
+    } catch (error) {
+        console.error('Patient records error:', error);
+        res.status(500).send('Error fetching patient records');
+    }
+});
+
+// ===========================================
+// FETCH FROM IPFS (AJAX)
+// ===========================================
+
+router.get('/api/fetch-ipfs/:cid', async (req, res) => {
+    try {
+        const { cid } = req.params;
+        const metadata = await fetchFromIPFS(cid);
+        res.json({ success: true, data: metadata });
+    } catch (error) {
+        console.error('IPFS fetch error:', error);
+        res.json({ success: false, error: error.message });
+    }
+});
+
+// ===========================================
+// GET FULL BLOCKCHAIN (AJAX)
+// ===========================================
+
+router.get('/api/blockchain', async (req, res) => {
+    try {
+        const chain = await getAllBlocks();
+        res.json({ success: true, chain: chain });
+    } catch (error) {
+        console.error('Blockchain fetch error:', error);
+        res.json({ success: false, error: error.message });
+    }
+});
+
+// ===========================================
+// GET PATIENT RECORDS (AJAX)
+// ===========================================
+
+router.get('/api/patient-records/:patientId', async (req, res) => {
+    try {
+        const { patientId } = req.params;
+        const blocks = await getPatientBlocksDB(patientId);
+        res.json({ success: true, blocks: blocks });
+    } catch (error) {
+        console.error('Patient records fetch error:', error);
+        res.json({ success: false, error: error.message });
+    }
+});
+
+// ===========================================
+// CHECK IPFS STATUS (AJAX)
+// ===========================================
+
+router.get('/api/ipfs-status', async (req, res) => {
+    try {
+        const isConnected = await checkIPFSConnection();
+        res.json({ success: true, connected: isConnected });
+    } catch (error) {
+        res.json({ success: false, connected: false });
+    }
+});
+
+// ===========================================
+// GET PATIENT DATA (AJAX)
+// ===========================================
+
+router.get('/api/patient-data/:patientId', async (req, res) => {
+    try {
+        const { patientId } = req.params;
+        const patients = await getAllPatients();
+        const patient = patients.find(p => p.patient_id === patientId);
+        
+        if (patient) {
+            res.json({ success: true, patient: patient });
+        } else {
+            res.json({ success: false, error: 'Patient not found' });
+        }
+    } catch (error) {
+        console.error('Patient data fetch error:', error);
+        res.json({ success: false, error: error.message });
+    }
+});
+
+// ===========================================
+// UPDATE PATIENT DATA (AJAX)
+// ===========================================
+
+router.post('/api/update-patient', async (req, res) => {
+    try {
+        const { patient_id, ...updateData } = req.body;
+        
+        // Find the username associated with this patient_id
+        const patients = await getAllPatients();
+        const patient = patients.find(p => p.patient_id === patient_id);
+        
+        if (!patient || !patient.username) {
+            return res.json({ success: false, error: 'Patient not found' });
+        }
+        
+        // Update the patient data in database
+        await updatePatient(patient.username, updateData);
+        
+        res.json({ success: true, message: 'Patient data updated successfully' });
+    } catch (error) {
+        console.error('Patient update error:', error);
+        res.json({ success: false, error: error.message });
+    }
+});
+
+export default router;

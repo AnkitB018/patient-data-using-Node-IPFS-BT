@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Medical Records</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            font-family: 'Inter', sans-serif;
+            color: #e4e4e7;
+        }
+        
+        /* Navbar */
+        .navbar-custom {
+            background: rgba(30,41,59,0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        
+        .navbar-brand {
+            color: #00d2ff !important;
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+        
+        .navbar-text {
+            color: #a0aec0;
+        }
+        
+        .navbar-text strong {
+            color: #00d2ff;
+        }
+        
+        /* Main Container */
+        .main-container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        
+        /* Profile Card */
+        .profile-card {
+            background: rgba(30,41,59,0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0,210,255,0.2);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 2px solid rgba(0,210,255,0.2);
+        }
+        
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: white;
+            font-weight: 700;
+            box-shadow: 0 4px 15px rgba(0,210,255,0.4);
+        }
+        
+        .profile-info h2 {
+            color: #00d2ff;
+            margin-bottom: 0.5rem;
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+        
+        .profile-info p {
+            color: #a0aec0;
+            margin: 0;
+        }
+        
+        .profile-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .detail-item {
+            background: rgba(15,52,96,0.4);
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            border-left: 3px solid #00d2ff;
+        }
+        
+        .detail-item label {
+            display: block;
+            color: #64748b;
+            font-size: 0.85rem;
+            margin-bottom: 0.3rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .detail-item .value {
+            color: #e4e4e7;
+            font-size: 1.05rem;
+            font-weight: 600;
+        }
+        
+        /* Records Section */
+        .records-section {
+            background: rgba(30,41,59,0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0,210,255,0.2);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        
+        .section-title {
+            color: #00d2ff;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .record-card {
+            background: rgba(15,52,96,0.4);
+            border: 1px solid rgba(0,210,255,0.15);
+            border-left: 4px solid #00d2ff;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .record-card:hover {
+            transform: translateX(8px);
+            border-left-width: 6px;
+            box-shadow: 0 8px 25px rgba(0,210,255,0.2);
+            background: rgba(15,52,96,0.6);
+        }
+        
+        .record-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1rem;
+        }
+        
+        .record-title {
+            color: #00d2ff;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .record-meta {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            margin-bottom: 0.3rem;
+        }
+        
+        .record-meta i {
+            color: #00d2ff;
+            margin-right: 0.3rem;
+        }
+        
+        .btn-view-record {
+            background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+            border: none;
+            border-radius: 12px;
+            padding: 0.6rem 1.5rem;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        
+        .btn-view-record:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0,210,255,0.4);
+            color: white;
+        }
+        
+        .badge-status {
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        
+        .badge-open {
+            background: rgba(16,185,129,0.2);
+            color: #10b981;
+            border: 1px solid #10b981;
+        }
+        
+        .badge-closed {
+            background: rgba(100,116,139,0.2);
+            color: #94a3b8;
+            border: 1px solid #64748b;
+        }
+        
+        .no-records {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #64748b;
+        }
+        
+        .no-records i {
+            font-size: 4rem;
+            color: #334155;
+            margin-bottom: 1rem;
+        }
+        
+        /* Modal */
+        .modal-content {
+            background: #1e293b;
+            border: 1px solid rgba(0,210,255,0.2);
+            border-radius: 20px;
+            color: #e4e4e7;
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+            color: white;
+            border-radius: 20px 20px 0 0;
+            border-bottom: none;
+        }
+        
+        .modal-body {
+            padding: 2rem;
+        }
+        
+        .btn-close {
+            filter: brightness(0) invert(1);
+        }
+        
+        .metadata-item {
+            background: rgba(15,52,96,0.4);
+            padding: 0.8rem 1.2rem;
+            border-radius: 10px;
+            margin-bottom: 0.8rem;
+            border-left: 3px solid #00d2ff;
+        }
+        
+        .metadata-item strong {
+            color: #64748b;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .file-preview {
+            max-width: 100%;
+            border-radius: 10px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+            border: none;
+            border-radius: 12px;
+            padding: 0.6rem 1.5rem;
+        }
+        
+        .btn-primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0,210,255,0.4);
+        }
+        
+        .alert-info {
+            background: rgba(0,210,255,0.1);
+            border: 1px solid rgba(0,210,255,0.3);
+            color: #00d2ff;
+        }
+        
+        .alert-warning {
+            background: rgba(251,191,36,0.1);
+            border: 1px solid rgba(251,191,36,0.3);
+            color: #fbbf24;
+        }
+        
+        .alert-danger {
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.3);
+            color: #ef4444;
+        }
+        
+        .alert-secondary {
+            background: rgba(100,116,139,0.1);
+            border: 1px solid rgba(100,116,139,0.3);
+            color: #94a3b8;
+        }
+        
+        /* Tab Styling */
+        .nav-tabs {
+            border-bottom: 2px solid rgba(0,210,255,0.3);
+        }
+        
+        .nav-tabs .nav-link {
+            color: #94a3b8;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            padding: 1rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .nav-tabs .nav-link:hover {
+            color: #00d2ff;
+            border-bottom-color: rgba(0,210,255,0.5);
+        }
+        
+        .nav-tabs .nav-link.active {
+            color: #00d2ff;
+            background: transparent;
+            border-bottom: 2px solid #00d2ff;
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
+        <div class="container-fluid" style="max-width: 1400px; margin: 0 auto;">
+            <a class="navbar-brand" href="/patient/dashboard">
+                <i class="bi bi-heart-pulse-fill me-2"></i>MedChain
+            </a>
+            <div class="ms-auto d-flex align-items-center gap-3">
+                <span class="navbar-text">
+                    Welcome, <strong><%= user.full_name || user.username %></strong>
+                </span>
+                <a href="/logout" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="main-container">
+        <!-- Profile Card -->
+        <div class="profile-card">
+            <div class="profile-header">
+                <div class="profile-avatar">
+                    <%= (userData.full_name || user.username).charAt(0).toUpperCase() %>
+                </div>
+                <div class="profile-info flex-grow-1">
+                    <h2><%= userData.full_name || user.username %></h2>
+                    <p><i class="bi bi-person-badge me-2"></i>Patient ID: <%= patientId %></p>
+                </div>
+                <div>
+                    <button class="btn btn-primary" onclick="openEditProfile()">
+                        <i class="bi bi-pencil-square me-2"></i>Edit Profile
+                    </button>
+                </div>
+            </div>
+            
+            <div class="profile-details">
+                <div class="detail-item">
+                    <label><i class="bi bi-person-fill me-1"></i>Username</label>
+                    <div class="value"><%= user.username %></div>
+                </div>
+                <div class="detail-item">
+                    <label><i class="bi bi-droplet-fill me-1"></i>Blood Group</label>
+                    <div class="value"><%= userData.blood_group || 'Not provided' %></div>
+                </div>
+                <div class="detail-item">
+                    <label><i class="bi bi-gender-ambiguous me-1"></i>Gender</label>
+                    <div class="value"><%= userData.gender || 'Not provided' %></div>
+                </div>
+                <div class="detail-item">
+                    <label><i class="bi bi-calendar-event me-1"></i>Date of Birth</label>
+                    <div class="value"><%= userData.date_of_birth || 'Not provided' %></div>
+                </div>
+                <div class="detail-item">
+                    <label><i class="bi bi-telephone-fill me-1"></i>Contact</label>
+                    <div class="value"><%= userData.phone || userData.contact || 'Not provided' %></div>
+                </div>
+                <div class="detail-item">
+                    <label><i class="bi bi-envelope-fill me-1"></i>Email</label>
+                    <div class="value"><%= userData.email || 'Not provided' %></div>
+                </div>
+                <div class="detail-item">
+                    <label><i class="bi bi-rulers me-1"></i>Height</label>
+                    <div class="value"><%= userData.height ? userData.height + ' cm' : 'Not provided' %></div>
+                </div>
+                <div class="detail-item">
+                    <label><i class="bi bi-weight me-1"></i>Weight</label>
+                    <div class="value"><%= userData.weight ? userData.weight + ' kg' : 'Not provided' %></div>
+                </div>
+                <div class="detail-item" style="grid-column: 1 / -1;">
+                    <label><i class="bi bi-heart-pulse me-1"></i>Current Conditions</label>
+                    <div class="value"><%= userData.current_conditions || 'None reported' %></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tabbed Section -->
+        <div class="records-section">
+            <!-- Tab Navigation -->
+            <ul class="nav nav-tabs" id="patientTabs" role="tablist" style="border-bottom: 2px solid rgba(0,210,255,0.3); margin-bottom: 2rem;">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="records-tab" data-bs-toggle="tab" data-bs-target="#records-content" type="button" role="tab" style="color: #00d2ff; background: transparent; border: none; border-bottom: 2px solid transparent; padding: 1rem 1.5rem; font-weight: 600;">
+                        <i class="bi bi-file-medical-fill me-2"></i>Medical Records
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="consent-tab" data-bs-toggle="tab" data-bs-target="#consent-content" type="button" role="tab" style="color: #94a3b8; background: transparent; border: none; border-bottom: 2px solid transparent; padding: 1rem 1.5rem; font-weight: 600;">
+                        <i class="bi bi-shield-check me-2"></i>Consent Management
+                    </button>
+                </li>
+            </ul>
+            
+            <!-- Tab Content -->
+            <div class="tab-content" id="patientTabsContent">
+                <!-- Medical Records Tab -->
+                <div class="tab-pane fade show active" id="records-content" role="tabpanel">
+                    <% if (blocks && blocks.length > 0) { %>
+                <% blocks.forEach((block, index) => { %>
+                    <div class="record-card">
+                        <div class="record-header">
+                            <div class="flex-grow-1">
+                                <div class="record-title">
+                                    <i class="bi bi-file-earmark-medical me-2"></i><%= block.data['File Type'] || 'Medical Record' %>
+                                </div>
+                                <div class="record-meta">
+                                    <i class="bi bi-bandaid"></i>
+                                    <strong>Disease:</strong> <%= block.data['Disease'] || 'N/A' %>
+                                </div>
+                                <div class="record-meta">
+                                    <i class="bi bi-calendar-event"></i>
+                                    <%= block.data['Timestamp'] %>
+                                </div>
+                                <div class="record-meta">
+                                    <i class="bi bi-person-badge"></i>
+                                    Uploaded by: <%= block.data['Uploaded By'] %>
+                                </div>
+                                <div class="mt-2">
+                                    <span class="badge-status <%= block.data['File Status'] === 'Closed' ? 'badge-closed' : 'badge-open' %>">
+                                        <%= block.data['File Status'] || 'Open' %>
+                                    </span>
+                                    <span class="badge-status badge-closed ms-2">
+                                        Block #<%= block.index %>
+                                    </span>
+                                </div>
+                            </div>
+                            <div>
+                                <button class="btn btn-view-record" onclick="viewRecord('<%= block.data.cid %>')">
+                                    <i class="bi bi-eye me-2"></i>View Details
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <% }); %>
+                    <% } else { %>
+                        <div class="no-records">
+                            <i class="bi bi-inbox"></i>
+                            <h5>No Medical Records Found</h5>
+                            <p>You don't have any medical records uploaded yet.</p>
+                        </div>
+                    <% } %>
+                </div>
+                
+                <!-- Consent Management Tab -->
+                <div class="tab-pane fade" id="consent-content" role="tabpanel">
+                    <div class="text-center p-5" style="background: rgba(15,52,96,0.3); border-radius: 15px; border: 1px dashed rgba(0,210,255,0.3);">
+                        <i class="bi bi-shield-lock" style="font-size: 4rem; color: #00d2ff; margin-bottom: 1.5rem;"></i>
+                        <h4 style="color: #00d2ff; margin-bottom: 1rem;">Consent Management System</h4>
+                        <p style="color: #94a3b8; font-size: 1.1rem; max-width: 600px; margin: 0 auto;">
+                            This feature allows you to grant and manage access permissions for your medical records.
+                            You can share specific records with doctors or other healthcare providers.
+                        </p>
+                        <div class="mt-4 p-4" style="background: rgba(0,210,255,0.1); border-radius: 10px; max-width: 500px; margin: 2rem auto 0;">
+                            <h5 style="color: #00d2ff; margin-bottom: 1rem;">
+                                <i class="bi bi-tools me-2"></i>Under Development
+                            </h5>
+                            <p style="color: #e4e4e7; margin: 0;">
+                                Features Coming Soon:
+                            </p>
+                            <ul style="color: #94a3b8; text-align: left; margin-top: 1rem; display: inline-block;">
+                                <li>Grant access to doctors</li>
+                                <li>Grant access to other patients</li>
+                                <li>Set expiry dates for consent</li>
+                                <li>Revoke access anytime</li>
+                                <li>View consent history</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit Profile Modal -->
+    <div class="modal fade" id="editProfileModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Edit Profile</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editProfileForm">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label" style="color: #64748b;">Contact Phone</label>
+                                <input type="tel" class="form-control" id="edit_contact" value="<%= userData.contact || userData.phone || '' %>" style="background: rgba(15,52,96,0.4); border: 1px solid rgba(0,210,255,0.2); color: #e4e4e7;">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" style="color: #64748b;">Email</label>
+                                <input type="email" class="form-control" id="edit_email" value="<%= userData.email || '' %>" style="background: rgba(15,52,96,0.4); border: 1px solid rgba(0,210,255,0.2); color: #e4e4e7;">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label" style="color: #64748b;">Date of Birth</label>
+                                <input type="date" class="form-control" id="edit_dob" value="<%= userData.date_of_birth || '' %>" style="background: rgba(15,52,96,0.4); border: 1px solid rgba(0,210,255,0.2); color: #e4e4e7;">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" style="color: #64748b;">Gender</label>
+                                <select class="form-control" id="edit_gender" style="background: rgba(15,52,96,0.4); border: 1px solid rgba(0,210,255,0.2); color: #e4e4e7;">
+                                    <option value="">Select Gender</option>
+                                    <option value="Male" <%= userData.gender === 'Male' ? 'selected' : '' %>>Male</option>
+                                    <option value="Female" <%= userData.gender === 'Female' ? 'selected' : '' %>>Female</option>
+                                    <option value="Other" <%= userData.gender === 'Other' ? 'selected' : '' %>>Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label" style="color: #64748b;">Blood Group</label>
+                                <select class="form-control" id="edit_blood_group" style="background: rgba(15,52,96,0.4); border: 1px solid rgba(0,210,255,0.2); color: #e4e4e7;">
+                                    <option value="">Select Blood Group</option>
+                                    <option value="A+" <%= userData.blood_group === 'A+' ? 'selected' : '' %>>A+</option>
+                                    <option value="A-" <%= userData.blood_group === 'A-' ? 'selected' : '' %>>A-</option>
+                                    <option value="B+" <%= userData.blood_group === 'B+' ? 'selected' : '' %>>B+</option>
+                                    <option value="B-" <%= userData.blood_group === 'B-' ? 'selected' : '' %>>B-</option>
+                                    <option value="O+" <%= userData.blood_group === 'O+' ? 'selected' : '' %>>O+</option>
+                                    <option value="O-" <%= userData.blood_group === 'O-' ? 'selected' : '' %>>O-</option>
+                                    <option value="AB+" <%= userData.blood_group === 'AB+' ? 'selected' : '' %>>AB+</option>
+                                    <option value="AB-" <%= userData.blood_group === 'AB-' ? 'selected' : '' %>>AB-</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" style="color: #64748b;">Height (cm)</label>
+                                <input type="number" step="0.01" class="form-control" id="edit_height" value="<%= userData.height || '' %>" style="background: rgba(15,52,96,0.4); border: 1px solid rgba(0,210,255,0.2); color: #e4e4e7;">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" style="color: #64748b;">Weight (kg)</label>
+                                <input type="number" step="0.01" class="form-control" id="edit_weight" value="<%= userData.weight || '' %>" style="background: rgba(15,52,96,0.4); border: 1px solid rgba(0,210,255,0.2); color: #e4e4e7;">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <label class="form-label" style="color: #64748b;">Current Medical Conditions</label>
+                                <textarea class="form-control" id="edit_conditions" rows="3" style="background: rgba(15,52,96,0.4); border: 1px solid rgba(0,210,255,0.2); color: #e4e4e7;"><%= userData.current_conditions || '' %></textarea>
+                                <small style="color: #64748b;">List any ongoing medical conditions, allergies, or important health information</small>
+                            </div>
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>Patient ID and Username cannot be changed
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="background: rgba(15,52,96,0.2); border-top: 1px solid rgba(0,210,255,0.2);">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="background: rgba(100,116,139,0.3); border: 1px solid #64748b;">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveProfile()">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- File Preview Modal -->
+    <div class="modal fade" id="recordModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-file-earmark-text me-2"></i>Medical Record Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="recordContent">
+                    <div class="text-center">
+                        <div class="spinner-border" style="color: #00d2ff;" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-3" style="color: #00d2ff;">Loading record...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function openEditProfile() {
+            const modal = new bootstrap.Modal(document.getElementById('editProfileModal'));
+            modal.show();
+        }
+        
+        async function saveProfile() {
+            const profileData = {
+                contact: document.getElementById('edit_contact').value,
+                email: document.getElementById('edit_email').value,
+                date_of_birth: document.getElementById('edit_dob').value,
+                gender: document.getElementById('edit_gender').value,
+                blood_group: document.getElementById('edit_blood_group').value,
+                height: document.getElementById('edit_height').value || null,
+                weight: document.getElementById('edit_weight').value || null,
+                current_conditions: document.getElementById('edit_conditions').value || null
+            };
+            
+            try {
+                const response = await fetch('/patient/api/update-profile', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(profileData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Profile updated successfully!');
+                    location.reload();
+                } else {
+                    alert('Error updating profile: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Error updating profile: ' + error.message);
+            }
+        }
+        
+        async function viewRecord(cid) {
+            const modal = new bootstrap.Modal(document.getElementById('recordModal'));
+            modal.show();
+            
+            try {
+                const response = await fetch(`/patient/api/record/${cid}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const data = result.data;
+                    let html = '<div class="container-fluid">';
+                    
+                    // Metadata Section
+                    html += '<div class="row mb-4">';
+                    html += '<div class="col-md-6">';
+                    html += `<div class="metadata-item"><strong>Patient Name:</strong> <span style="color: #e4e4e7;">${data.patient_name || 'N/A'}</span></div>`;
+                    html += `<div class="metadata-item"><strong>Patient ID:</strong> <span style="color: #e4e4e7;">${data.patient_id || 'N/A'}</span></div>`;
+                    html += `<div class="metadata-item"><strong>File Type:</strong> <span style="color: #e4e4e7;">${data.file_type || 'N/A'}</span></div>`;
+                    html += `<div class="metadata-item"><strong>Disease:</strong> <span style="color: #e4e4e7;">${data.disease || 'N/A'}</span></div>`;
+                    html += '</div>';
+                    html += '<div class="col-md-6">';
+                    html += `<div class="metadata-item"><strong>Status:</strong> <span class="badge ${data.file_status === 'Closed' ? 'bg-secondary' : 'bg-success'}">${data.file_status || 'Open'}</span></div>`;
+                    html += `<div class="metadata-item"><strong>Doctor:</strong> <span style="color: #e4e4e7;">${data.doctor || 'N/A'}</span></div>`;
+                    html += `<div class="metadata-item"><strong>Uploaded By:</strong> <span style="color: #e4e4e7;">${data.uploaded_by || 'N/A'}</span></div>`;
+                    html += `<div class="metadata-item"><strong>Timestamp:</strong> <span style="color: #e4e4e7;">${data.timestamp || 'N/A'}</span></div>`;
+                    html += '</div>';
+                    html += '</div>';
+                    
+                    // Description
+                    if (data.description) {
+                        html += `<div class="alert alert-info"><strong>Description:</strong> ${data.description}</div>`;
+                    }
+                    
+                    // File Preview
+                    if (data.file_base64) {
+                        html += '<h5 class="mt-4 mb-3" style="color: #00d2ff;">File Preview:</h5>';
+                        const fileType = (data.file_type || '').toLowerCase();
+                        const filename = (data.filename || 'medical_file').toLowerCase();
+                        
+                        // Better file type detection - check both file_type field and filename extension
+                        const isPDF = fileType.includes('pdf') || filename.endsWith('.pdf') || data.file_base64.startsWith('data:application/pdf');
+                        const isImage = fileType.includes('image') || fileType.includes('x-ray') || fileType.includes('scan') || 
+                                       fileType.includes('mri') || fileType.includes('ct') ||
+                                       filename.match(/\.(jpg|jpeg|png|gif|bmp)$/i) ||
+                                       data.file_base64.startsWith('data:image/');
+                        
+                        // Check if base64 string has proper prefix - THIS IS THE KEY FIX!
+                        let fileData = data.file_base64;
+                        if (!fileData.startsWith('data:')) {
+                            // Add proper prefix based on detected type
+                            if (isPDF) {
+                                fileData = 'data:application/pdf;base64,' + fileData;
+                            } else if (isImage) {
+                                fileData = 'data:image/jpeg;base64,' + fileData;
+                            }
+                        }
+                        
+                        if (isPDF) {
+                            // PDF Preview using iframe with embedded viewer
+                            html += `
+                                <div class="mb-3">
+                                    <div style="background: #1e293b; padding: 20px; border-radius: 15px;">
+                                        <iframe 
+                                            src="${fileData}#toolbar=1&navpanes=1&scrollbar=1" 
+                                            type="application/pdf"
+                                            width="100%" 
+                                            height="700px" 
+                                            style="border: none; border-radius: 10px; background: white;">
+                                        </iframe>
+                                    </div>
+                                    <div class="text-center mt-3">
+                                        <a href="${fileData}" download="${data.filename || 'medical_report.pdf'}" class="btn btn-primary">
+                                            <i class="bi bi-download me-2"></i>Download PDF
+                                        </a>
+                                    </div>
+                                </div>
+                            `;
+                        } else if (isImage) {
+                            // Image Preview
+                            html += `
+                                <div class="text-center mb-3">
+                                    <img src="${fileData}" class="file-preview img-fluid" alt="Medical Image" style="max-width: 100%; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.3);"/>
+                                    <div class="mt-3">
+                                        <a href="${fileData}" download="${data.filename || 'medical_image'}" class="btn btn-primary">
+                                            <i class="bi bi-download me-2"></i>Download Image
+                                        </a>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            // Generic file icon
+                            const detectedType = data.file_base64.startsWith('data:application/pdf') ? 'PDF (detected)' : 
+                                               data.file_base64.startsWith('data:image/') ? 'Image (detected)' :
+                                               data.file_type || 'Unknown';
+                            
+                            html += `
+                                <div class="text-center p-5" style="background: rgba(15,52,96,0.4); border-radius: 15px;">
+                                    <i class="bi bi-file-earmark-text" style="font-size: 4rem; color: #00d2ff;"></i>
+                                    <p class="mt-3" style="color: #e4e4e7;">File type: ${detectedType}</p>
+                                    <p class="text-muted">Preview not available for this file type</p>
+                                    <small class="text-muted">Filename: ${data.filename || 'N/A'}</small>
+                                    <div class="mt-3">
+                                        <a href="${fileData}" download="${data.filename || 'medical_file'}" class="btn btn-primary">
+                                            <i class="bi bi-download me-2"></i>Download File
+                                        </a>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    } else {
+                        html += '<div class="alert alert-warning mt-4">No file attached to this record.</div>';
+                    }
+                    
+                    html += '</div>';
+                    document.getElementById('recordContent').innerHTML = html;
+                } else {
+                    document.getElementById('recordContent').innerHTML = `
+                        <div class="alert alert-danger">Failed to load record: ${result.error || 'Unknown error'}</div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('recordContent').innerHTML = `
+                    <div class="alert alert-danger">Error loading record: ${error.message}</div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - MediChain</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        
+        /* Top Navigation Bar */
+        .top-navbar {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .user-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+        
+        .btn-logout {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            padding: 10px 25px;
+            border-radius: 25px;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        
+        .btn-logout:hover {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            transform: translateY(-2px);
+        }
+        
+        /* Status Bar */
+        .status-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 30px 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .status-card {
+            background: rgba(30,41,59,0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 20px;
+            padding: 25px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .status-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+        }
+        
+        .status-card.health::before { background: #00d2ff; }
+        .status-card.ipfs::before { background: #3a7bd5; }
+        .status-card.blockchain::before { background: #a8edea; }
+        .status-card.patients::before { background: #fed6e3; }
+        
+        .status-card:hover {
+            background: rgba(255,255,255,0.08);
+            transform: translateY(-5px);
+        }
+        
+        .status-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+        
+        .status-card.health .status-icon { background: linear-gradient(135deg, #00d2ff, #3a7bd5); }
+        .status-card.ipfs .status-icon { background: linear-gradient(135deg, #3a7bd5, #667eea); }
+        .status-card.blockchain .status-icon { background: linear-gradient(135deg, #a8edea, #fed6e3); color: #333; }
+        .status-card.patients .status-icon { background: linear-gradient(135deg, #fed6e3, #ffa8a8); color: #333; }
+        
+        .status-value {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 5px;
+        }
+        
+        .status-label {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.9rem;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        
+        .badge-success { background: rgba(0,255,127,0.2); color: #00ff7f; }
+        .badge-error { background: rgba(255,0,0,0.2); color: #ff4444; }
+        
+        /* Tabs Section */
+        .tabs-container {
+            padding: 0 40px 40px 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .tabs-nav {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid rgba(255,255,255,0.1);
+            overflow-x: auto;
+        }
+        
+        .tab-btn {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.6);
+            padding: 15px 30px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        
+        .tab-btn:hover {
+            color: rgba(255,255,255,0.9);
+        }
+        
+        .tab-btn.active {
+            color: #00d2ff;
+            border-bottom-color: #00d2ff;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Content Cards */
+        .content-card {
+            background: rgba(30,41,59,0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: block;
+            color: rgba(255,255,255,0.9);
+        }
+        
+        .form-control, .form-select {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 12px 18px;
+            color: white;
+            transition: all 0.3s;
+        }
+        
+        .form-control::placeholder {
+            color: rgba(255,255,255,0.4);
+        }
+        
+        .form-control:focus, .form-select:focus {
+            background: rgba(255,255,255,0.15);
+            border-color: #00d2ff;
+            box-shadow: 0 0 0 3px rgba(0,210,255,0.1);
+            color: white;
+            outline: none;
+        }
+        
+        .form-select option {
+            background: #16213e;
+            color: white;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            color: white;
+            font-weight: 700;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0,210,255,0.3);
+        }
+        
+        /* Blockchain Block Card */
+        .block-card {
+            background: rgba(30,41,59,0.5);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-left: 4px solid #00d2ff;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+        
+        .block-card:hover {
+            background: rgba(30,41,59,0.7);
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(0,210,255,0.2);
+        }
+        
+        .block-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .block-index {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #00d2ff;
+        }
+        
+        .block-hash {
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.5);
+            word-break: break-all;
+        }
+        
+        /* Record Card */
+        .record-card {
+            background: rgba(30,41,59,0.5);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+        
+        .record-card:hover {
+            background: rgba(30,41,59,0.7);
+            transform: translateY(-3px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        
+        .cid-badge {
+            background: rgba(0,210,255,0.1);
+            border: 1px solid rgba(0,210,255,0.3);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #00d2ff;
+            display: inline-block;
+            margin: 10px 0;
+        }
+        
+        .btn-fetch {
+            background: linear-gradient(135deg, #3a7bd5, #00d2ff);
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        
+        .btn-fetch:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,210,255,0.455,0.05);
+            transform: translateY(-3px);
+        }
+        
+        /* Modal Styles */
+        .modal-content {
+            background: #1a1a2e;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 20px;
+            color: white;
+        }
+        
+        .modal-header {
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+            border-radius: 20px 20px 0 0;
+        }
+        
+        .modal-body {
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .btn-close {
+            filter: brightness(0) invert(1);
+        }
+        
+        .metadata-item {
+            background: rgba(30,41,59,0.6);
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border-left: 3px solid #00d2ff;
+        }
+        
+        .file-preview-img {
+            max-width: 100%;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255,255,255,0.5);
+        }
+        
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+        
+        /* Drag and Drop Upload Area */
+        .upload-area {
+            border: 3px dashed rgba(0,210,255,0.4);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(30,41,59,0.4);
+        }
+        
+        .upload-area:hover, .upload-area.dragover {
+            border-color: #00d2ff;
+            background: rgba(0,210,255,0.15);
+            transform: scale(1.01);
+            box-shadow: 0 5px 20px rgba(0,210,255,0.2);
+        }
+        
+        .upload-icon {
+            font-size: 4rem;
+            color: #00d2ff;
+            margin-bottom: 20px;
+        }
+        
+        .alert {
+            border-radius: 15px;
+            border: none;
+        }
+        
+        .alert-success {
+            background: rgba(0,255,127,0.1);
+            color: #00ff7f;
+            border-left: 4px solid #00ff7f;
+        }
+        
+        .alert-danger {
+            background: rgba(255,0,0,0.1);
+            color: #ff4444;
+            border-left: 4px solid #ff4444;
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- Top Navigation -->
+    <nav class="top-navbar">
+        <div class="logo">
+            <i class="bi bi-shield-check me-2"></i>MediChain Admin
+        </div>
+        <div class="user-info">
+            <div>
+                <div style="font-weight: 600;"><%= user.full_name || user.username %></div>
+                <div style="font-size: 0.85rem; color: rgba(255,255,255,0.6);">Administrator</div>
+            </div>
+            <div class="user-avatar">
+                <%= (user.username || 'A').charAt(0).toUpperCase() %>
+            </div>
+            <a href="/logout" class="btn-logout">
+                <i class="bi bi-box-arrow-right me-2"></i>Logout
+            </a>
+        </div>
+    </nav>
+    
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div class="status-card health">
+            <div class="status-icon">
+                <i class="bi bi-heart-pulse"></i>
+            </div>
+            <div class="status-value">Healthy</div>
+            <div class="status-label">System Status</div>
+            <span class="status-badge badge-success" id="systemStatus">All Systems Operational</span>
+        </div>
+        
+        <div class="status-card ipfs">
+            <div class="status-icon">
+                <i class="bi bi-diagram-3"></i>
+            </div>
+            <div class="status-value" id="ipfsStatus">Checking...</div>
+            <div class="status-label">IPFS Status</div>
+            <span class="status-badge badge-success" id="ipfsBadge">Connecting...</span>
+        </div>
+        
+        <div class="status-card blockchain">
+            <div class="status-icon">
+                <i class="bi bi-link-45deg"></i>
+            </div>
+            <div class="status-value"><%= stats.total_blocks || stats.totalBlocks || 0 %></div>
+            <div class="status-label">Blockchain Blocks</div>
+            <span class="status-badge badge-success"><%= stats.patients_count || stats.patientsCount || 0 %> Patients</span>
+        </div>
+        
+        <div class="status-card patients">
+            <div class="status-icon">
+                <i class="bi bi-people"></i>
+            </div>
+            <div class="status-value"><%= patients.length %></div>
+            <div class="status-label">Total Patients</div>
+            <span class="status-badge badge-success"><%= patients.filter(p => p.full_name).length %> Registered</span>
+        </div>
+    </div>
+    
+    <!-- Tabs Container -->
+    <div class="tabs-container">
+        <!-- Tabs Navigation -->
+        <div class="tabs-nav">
+            <button class="tab-btn active" onclick="switchTab('upload')">
+                <i class="bi bi-cloud-upload me-2"></i>Upload Record
+            </button>
+            <button class="tab-btn" onclick="switchTab('blockchain')">
+                <i class="bi bi-link-45deg me-2"></i>Blockchain Explorer
+            </button>
+            <button class="tab-btn" onclick="switchTab('records')">
+                <i class="bi bi-file-medical me-2"></i>Patient Records
+            </button>
+            <button class="tab-btn" onclick="switchTab('edit-patient')">
+                <i class="bi bi-person-gear me-2"></i>Edit Patient Data
+            </button>
+            <button class="tab-btn" onclick="switchTab('ga-viz')">
+                <i class="bi bi-graph-up me-2"></i>GA Visualization
+            </button>
+        </div>
+        
+        <!-- Tab: Upload Record -->
+        <div id="upload-tab" class="tab-content active">
+            <div class="content-card">
+                <h3 class="mb-4"><i class="bi bi-cloud-upload me-2"></i>Upload Medical Record</h3>
+                
+                <% if (typeof success !== 'undefined' && success) { %>
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="bi bi-check-circle me-2"></i><%= success %>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                <% } %>
+                
+                <% if (typeof error !== 'undefined' && error) { %>
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="bi bi-exclamation-triangle me-2"></i><%= error %>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                <% } %>
+                
+                <form action="/admin/upload" method="POST" onsubmit="return handleUpload(event)">
+                    <div class="upload-area mb-4" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                        <i class="bi bi-cloud-arrow-up upload-icon"></i>
+                        <h4>Drag & Drop File Here</h4>
+                        <p style="color: rgba(255,255,255,0.6);">or click to browse</p>
+                        <input type="file" id="fileInput" hidden accept="image/*,.pdf,.doc,.docx">
+                    </div>
+                    
+                    <div id="filePreviewUpload" style="display: none;" class="mb-3 p-3 border border-success rounded">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-file-earmark-check text-success me-3" style="font-size: 2rem;"></i>
+                            <div class="flex-grow-1">
+                                <div id="fileNameUpload" style="font-weight: 600;"></div>
+                                <small id="fileSizeUpload" style="color: rgba(255,255,255,0.6);"></small>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-danger" onclick="removeFile()">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" id="file_base64" name="file_base64">
+                    <input type="hidden" id="filename" name="filename">
+                    
+                    <div class="row">
+                        <div class="col-md-6 form-group">
+                            <label class="form-label">Patient ID *</label>
+                            <select class="form-select" name="patient_id" id="patient_id" required onchange="updatePatientName()">
+                                <option value="">Select Patient</option>
+                                <% patients.forEach(patient => { %>
+                                    <option value="<%= patient.patient_id %>" data-name="<%= patient.full_name || patient.patient_id %>">
+                                        <%= patient.patient_id %> - <%= patient.full_name || 'Unnamed' %>
+                                    </option>
+                                <% }); %>
+                            </select>
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label class="form-label">Patient Name</label>
+                            <input type="text" class="form-control" id="patient_name" name="patient_name" readonly>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 form-group">
+                            <label class="form-label">File Type *</label>
+                            <select class="form-select" name="file_type" required>
+                                <option value="">Select Type</option>
+                                <option value="Blood Test">Blood Test</option>
+                                <option value="X-Ray">X-Ray</option>
+                                <option value="MRI Scan">MRI Scan</option>
+                                <option value="CT Scan">CT Scan</option>
+                                <option value="Prescription">Prescription</option>
+                                <option value="Lab Report">Lab Report</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label class="form-label">Disease/Condition *</label>
+                            <input type="text" class="form-control" name="disease" placeholder="e.g., Diabetes" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 form-group">
+                            <label class="form-label">Doctor Name *</label>
+                            <input type="text" class="form-control" name="doctor" placeholder="Dr. John Doe" required>
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label class="form-label">Uploaded By</label>
+                            <input type="text" class="form-control" name="uploaded_by" value="<%= user.username %>" readonly required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 form-group">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" name="file_status">
+                                <option value="Open">Open</option>
+                                <option value="Closed">Closed</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label class="form-label">Next Appointment</label>
+                            <input type="date" class="form-control" name="next_appointment">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" name="description" rows="3" placeholder="Additional notes..."></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                        <i class="bi bi-send me-2"></i>Upload to IPFS & Blockchain
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Tab: Blockchain Explorer -->
+        <div id="blockchain-tab" class="tab-content">
+            <div class="content-card">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3><i class="bi bi-link-45deg me-2"></i>Blockchain Explorer</h3>
+                    <button class="btn btn-primary" onclick="loadBlockchain(20)">
+                        <i class="bi bi-arrow-clockwise me-2"></i>Load More Blocks
+                    </button>
+                </div>
+                
+                <div id="blockchainList">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p class="mt-3">Loading blockchain...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab: Patient Records -->
+        <div id="records-tab" class="tab-content">
+            <div class="content-card">
+                <h3 class="mb-4"><i class="bi bi-file-medical me-2"></i>Patient Medical Records</h3>
+                
+                <div class="form-group">
+                    <label class="form-label">Select Patient</label>
+                    <select class="form-select" id="recordsPatientSelect" onchange="loadPatientRecords()">
+                        <option value="">Choose a patient...</option>
+                        <% patients.forEach(patient => { %>
+                            <option value="<%= patient.patient_id %>">
+                                <%= patient.patient_id %> - <%= patient.full_name || 'Unnamed' %>
+                            </option>
+                        <% }); %>
+                    </select>
+                </div>
+                
+                <div id="patientRecordsList" class="mt-4">
+                    <div class="empty-state">
+                        <i class="bi bi-inbox"></i>
+                        <h5>Select a patient to view their records</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab: Edit Patient Data -->
+        <div id="edit-patient-tab" class="tab-content">
+            <div class="content-card">
+                <h3 class="mb-4"><i class="bi bi-person-gear me-2"></i>Edit Patient Information</h3>
+                
+                <div class="form-group">
+                    <label class="form-label">Select Patient</label>
+                    <select class="form-select" id="editPatientSelect" onchange="loadPatientData()">
+                        <option value="">Choose a patient...</option>
+                        <% patients.forEach(patient => { %>
+                            <option value="<%= patient.patient_id %>">
+                                <%= patient.patient_id %> - <%= patient.full_name || 'Unnamed' %>
+                            </option>
+                        <% }); %>
+                    </select>
+                </div>
+                
+                <div id="editPatientForm" style="display: none;" class="mt-4">
+                    <form onsubmit="return updatePatientData(event)">
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label class="form-label">Full Name</label>
+                                <input type="text" class="form-control" id="edit_full_name" name="full_name">
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="form-label">Gender</label>
+                                <select class="form-select" id="edit_gender" name="gender">
+                                    <option value="">Select</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label class="form-label">Date of Birth</label>
+                                <input type="date" class="form-control" id="edit_dob" name="date_of_birth">
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="form-label">Blood Group</label>
+                                <select class="form-select" id="edit_blood" name="blood_group">
+                                    <option value="">Select</option>
+                                    <option value="A+">A+</option>
+                                    <option value="A-">A-</option>
+                                    <option value="B+">B+</option>
+                                    <option value="B-">B-</option>
+                                    <option value="O+">O+</option>
+                                    <option value="O-">O-</option>
+                                    <option value="AB+">AB+</option>
+                                    <option value="AB-">AB-</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label class="form-label">Phone</label>
+                                <input type="tel" class="form-control" id="edit_phone" name="phone">
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" id="edit_email" name="email">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Address</label>
+                            <textarea class="form-control" id="edit_address" name="address" rows="2"></textarea>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label class="form-label">Emergency Contact Name</label>
+                                <input type="text" class="form-control" id="edit_emerg_name" name="emergency_contact_name">
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="form-label">Emergency Contact Phone</label>
+                                <input type="tel" class="form-control" id="edit_emerg_phone" name="emergency_contact_phone">
+                            </div>
+                        </div>
+                        
+                        <input type="hidden" id="edit_patient_id" name="patient_id">
+                        
+                        <div class="alert alert-success" id="editSuccess" style="display: none;"></div>
+                        <div class="alert alert-danger" id="editError" style="display: none;"></div>
+                        
+                        <button type="submit" class="btn btn-primary btn-lg w-100">
+                            <i class="bi bi-save me-2"></i>Save Changes
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab: GA Visualization -->
+        <div id="ga-viz-tab" class="tab-content">
+            <div class="content-card">
+                <h3 class="mb-4"><i class="bi bi-graph-up me-2"></i>Genetic Algorithm Visualization</h3>
+                <div class="empty-state">
+                    <i class="bi bi-hourglass-split"></i>
+                    <h5>Coming Soon</h5>
+                    <p>GA-based access control visualization will be implemented here</p>
+                    <small style="color: rgba(255,255,255,0.4);">This feature is under development</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- File Preview Modal -->
+    <div class="modal fade" id="filePreviewModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-file-earmark-text me-2"></i>Medical Record Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="modalContent">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Tab Switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // Load data when switching tabs
+            if (tabName === 'blockchain') loadBlockchain(10);
+        }
+        
+        // Check IPFS Status
+        async function checkIPFSStatus() {
+            try {
+                const response = await fetch('/admin/api/ipfs-status');
+                const data = await response.json();
+                
+                if (data.success && data.connected) {
+                    document.getElementById('ipfsStatus').textContent = 'Running';
+                    document.getElementById('ipfsBadge').textContent = 'Local Node Active';
+                    document.getElementById('ipfsBadge').className = 'status-badge badge-success';
+                } else {
+                    document.getElementById('ipfsStatus').textContent = 'Offline';
+                    document.getElementById('ipfsBadge').textContent = 'Node Not Running';
+                    document.getElementById('ipfsBadge').className = 'status-badge badge-error';
+                }
+            } catch (error) {
+                document.getElementById('ipfsStatus').textContent = 'Error';
+                document.getElementById('ipfsBadge').textContent = 'Connection Failed';
+                document.getElementById('ipfsBadge').className = 'status-badge badge-error';
+            }
+        }
+        
+        // Load Blockchain
+        async function loadBlockchain(limit = 10) {
+            const container = document.getElementById('blockchainList');
+            container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
+            
+            try {
+                const response = await fetch('/admin/api/blockchain');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const blocks = data.chain.slice(-limit).reverse();
+                    let html = '';
+                    
+                    blocks.forEach(block => {
+                        const cid = block.data.cid || 'N/A';
+                        const hasCid = cid !== 'N/A' && cid !== '';
+                        
+                        html += `
+                            <div class="block-card">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <div class="block-index">Block #${block.index}</div>
+                                        <small style="color: rgba(255,255,255,0.5);">${block.timestamp}</small>
+                                    </div>
+                                    ${hasCid ? `<button class="btn-fetch" onclick="viewRecord('${cid}')">
+                                        <i class="bi bi-eye me-1"></i>Fetch from IPFS
+                                    </button>` : ''}
+                                </div>
+                                
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <strong style="color: #00d2ff;">Patient:</strong> ${block.data['Patient Name'] || 'N/A'}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong style="color: #00d2ff;">Disease:</strong> ${block.data['Disease'] || 'N/A'}
+                                    </div>
+                                </div>
+                                
+                                ${hasCid ? `<div class="mb-2">
+                                    <strong style="color: #00d2ff;">IPFS CID:</strong>
+                                    <div class="cid-badge mt-1">${cid}</div>
+                                </div>` : ''}
+                                
+                                <div class="block-hash mb-2" style="font-size: 0.8rem;">
+                                    <strong>Hash:</strong> ${block.hash}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    container.innerHTML = html || '<div class="empty-state"><i class="bi bi-inbox"></i><h5>No blocks found</h5></div>';
+                } else {
+                    container.innerHTML = '<div class="alert alert-danger">Failed to load blockchain</div>';
+                }
+            } catch (error) {
+                container.innerHTML = '<div class="alert alert-danger">Error: ' + error.message + '</div>';
+            }
+        }
+        
+        // Load Patient Records
+        async function loadPatientRecords() {
+            const patientId = document.getElementById('recordsPatientSelect').value;
+            const container = document.getElementById('patientRecordsList');
+            
+            if (!patientId) {
+                container.innerHTML = '<div class="empty-state"><i class="bi bi-inbox"></i><h5>Select a patient</h5></div>';
+                return;
+            }
+            
+            container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
+            
+            try {
+                const response = await fetch('/admin/api/patient-records/' + patientId);
+                const data = await response.json();
+                
+                if (data.success && data.blocks.length > 0) {
+                    let html = '';
+                    data.blocks.forEach(block => {
+                        html += `
+                            <div class="record-card">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <h5 style="color: #00d2ff;">${block.data['File Type'] || 'Medical Record'}</h5>
+                                        <p class="mb-2"><strong>Disease:</strong> ${block.data['Disease'] || 'N/A'}</p>
+                                        <p class="mb-2"><strong>Doctor:</strong> ${block.data['doctor'] || 'N/A'}</p>
+                                        <p class="mb-2"><strong>Date:</strong> ${block.data['Timestamp']}</p>
+                                        <p class="mb-0"><strong>Status:</strong> <span class="badge ${block.data['File Status'] === 'Closed' ? 'bg-secondary' : 'bg-success'}">${block.data['File Status'] || 'Open'}</span></p>
+                                    </div>
+                                    <button class="btn btn-primary" onclick="viewRecord('${block.data.cid}')">
+                                        <i class="bi bi-eye me-2"></i>View Details
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<div class="empty-state"><i class="bi bi-inbox"></i><h5>No records found for this patient</h5></div>';
+                }
+            } catch (error) {
+                container.innerHTML = '<div class="alert alert-danger">Error: ' + error.message + '</div>';
+            }
+        }
+        
+        // View Record with File Preview
+        async function viewRecord(cid) {
+            const modal = new bootstrap.Modal(document.getElementById('filePreviewModal'));
+            const content = document.getElementById('modalContent');
+            modal.show();
+            
+            content.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
+            
+            try {
+                const response = await fetch('/admin/api/fetch-ipfs/' + cid);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const data = result.data;
+                    let html = '<div class="container-fluid">';
+                    
+                    // Metadata
+                    html += '<div class="row mb-4">';
+                    html += '<div class="col-md-6">';
+                    html += `<div class="metadata-item"><strong>Patient:</strong> ${data.patient_name || 'N/A'}</div>`;
+                    html += `<div class="metadata-item"><strong>Patient ID:</strong> ${data.patient_id || 'N/A'}</div>`;
+                    html += `<div class="metadata-item"><strong>File Type:</strong> ${data.file_type || 'N/A'}</div>`;
+                    html += `<div class="metadata-item"><strong>Disease:</strong> ${data.disease || 'N/A'}</div>`;
+                    html += '</div>';
+                    html += '<div class="col-md-6">';
+                    html += `<div class="metadata-item"><strong>Doctor:</strong> ${data.doctor || 'N/A'}</div>`;
+                    html += `<div class="metadata-item"><strong>Status:</strong> <span class="badge ${data.file_status === 'Closed' ? 'bg-secondary' : 'bg-success'}">${data.file_status || 'Open'}</span></div>`;
+                    html += `<div class="metadata-item"><strong>Uploaded By:</strong> ${data.uploaded_by || 'N/A'}</div>`;
+                    html += `<div class="metadata-item"><strong>Date:</strong> ${data.timestamp || 'N/A'}</div>`;
+                    html += '</div></div>';
+                    
+                    if (data.description) {
+                        html += `<div class="alert alert-info mb-4"><strong>Description:</strong> ${data.description}</div>`;
+                    }
+                    
+                    // File Preview
+                    if (data.file_base64) {
+                        html += '<h5 class="mb-3" style="color: #00d2ff;">File Preview:</h5>';
+                        const fileType = (data.file_type || '').toLowerCase();
+                        const filename = (data.filename || 'medical_file').toLowerCase();
+                        
+                        // Better file type detection - check both file_type field and filename extension
+                        const isPDF = fileType.includes('pdf') || filename.endsWith('.pdf') || data.file_base64.startsWith('data:application/pdf');
+                        const isImage = fileType.includes('image') || fileType.includes('x-ray') || fileType.includes('scan') || 
+                                       fileType.includes('mri') || fileType.includes('ct') ||
+                                       filename.match(/\.(jpg|jpeg|png|gif|bmp)$/i) ||
+                                       data.file_base64.startsWith('data:image/');
+                        
+                        // Check if base64 string has proper prefix
+                        let fileData = data.file_base64;
+                        if (!fileData.startsWith('data:')) {
+                            // Add proper prefix based on detected type
+                            if (isPDF) {
+                                fileData = 'data:application/pdf;base64,' + fileData;
+                            } else if (isImage) {
+                                fileData = 'data:image/jpeg;base64,' + fileData;
+                            }
+                        }
+                        
+                        if (isPDF) {
+                            // PDF Preview using iframe with embedded viewer
+                            html += `
+                                <div class="mb-3">
+                                    <div style="background: #1e293b; padding: 20px; border-radius: 15px;">
+                                        <iframe 
+                                            src="${fileData}#toolbar=1&navpanes=1&scrollbar=1" 
+                                            type="application/pdf"
+                                            width="100%" 
+                                            height="700px" 
+                                            style="border: none; border-radius: 10px; background: white;">
+                                        </iframe>
+                                    </div>
+                                    <div class="text-center mt-3 p-3" style="background: rgba(0,210,255,0.1); border-radius: 10px; border: 1px solid rgba(0,210,255,0.3);">
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        <span>PDF Viewer - Use the Download button below to save the file</span>
+                                    </div>
+                                </div>
+                            `;
+                        } else if (isImage) {
+                            // Image Preview
+                            html += `
+                                <div class="text-center mb-3">
+                                    <img src="${fileData}" class="file-preview-img" alt="Medical Image" style="max-width: 100%; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.3);"/>
+                                </div>
+                            `;
+                        } else {
+                            // Generic file icon - also try to detect from base64 prefix
+                            const detectedType = data.file_base64.startsWith('data:application/pdf') ? 'PDF (detected)' : 
+                                               data.file_base64.startsWith('data:image/') ? 'Image (detected)' :
+                                               data.file_type || 'Unknown';
+                            
+                            html += `
+                                <div class="text-center p-5" style="background: rgba(255,255,255,0.05); border-radius: 15px;">
+                                    <i class="bi bi-file-earmark-text" style="font-size: 4rem; color: #00d2ff;"></i>
+                                    <p class="mt-3">File type: ${detectedType}</p>
+                                    <p class="text-muted">Preview not available for this file type</p>
+                                    <small class="text-muted">Filename: ${data.filename || 'N/A'}</small>
+                                </div>
+                            `;
+                        }
+                        
+                        html += `
+                            <div class="text-center mt-3">
+                                <a href="${fileData}" download="${filename}" class="btn btn-primary">
+                                    <i class="bi bi-download me-2"></i>Download File
+                                </a>
+                            </div>
+                        `;
+                    } else {
+                        html += '<div class="alert alert-warning">No file attached</div>';
+                    }
+                    
+                    html += '</div>';
+                    content.innerHTML = html;
+                } else {
+                    content.innerHTML = '<div class="alert alert-danger">Failed to load record</div>';
+                }
+            } catch (error) {
+                content.innerHTML = '<div class="alert alert-danger">Error: ' + error.message + '</div>';
+            }
+        }
+        
+        // Load Patient Data for Editing
+        async function loadPatientData() {
+            const patientId = document.getElementById('editPatientSelect').value;
+            const form = document.getElementById('editPatientForm');
+            
+            if (!patientId) {
+                form.style.display = 'none';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/admin/api/patient-data/' + patientId);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const patient = data.patient;
+                    document.getElementById('edit_full_name').value = patient.full_name || '';
+                    document.getElementById('edit_gender').value = patient.gender || '';
+                    document.getElementById('edit_dob').value = patient.date_of_birth || '';
+                    document.getElementById('edit_blood').value = patient.blood_group || '';
+                    document.getElementById('edit_phone').value = patient.phone || '';
+                    document.getElementById('edit_email').value = patient.email || '';
+                    document.getElementById('edit_address').value = patient.address || '';
+                    document.getElementById('edit_emerg_name').value = patient.emergency_contact_name || '';
+                    document.getElementById('edit_emerg_phone').value = patient.emergency_contact_phone || '';
+                    document.getElementById('edit_patient_id').value = patientId;
+                    
+                    form.style.display = 'block';
+                }
+            } catch (error) {
+                alert('Error loading patient data: ' + error.message);
+            }
+        }
+        
+        // Update Patient Data
+        async function updatePatientData(e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+            
+            document.getElementById('editSuccess').style.display = 'none';
+            document.getElementById('editError').style.display = 'none';
+            
+            try {
+                const response = await fetch('/admin/api/update-patient', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('editSuccess').textContent = 'Patient data updated successfully!';
+                    document.getElementById('editSuccess').style.display = 'block';
+                } else {
+                    document.getElementById('editError').textContent = 'Failed to update patient data';
+                    document.getElementById('editError').style.display = 'block';
+                }
+            } catch (error) {
+                document.getElementById('editError').textContent = 'Error: ' + error.message;
+                document.getElementById('editError').style.display = 'block';
+            }
+            
+            return false;
+        }
+        
+        // File Upload Handlers
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, e => {e.preventDefault(); e.stopPropagation();}, false);
+        });
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
+        });
+        
+        dropZone.addEventListener('drop', e => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect();
+            }
+        });
+        
+        fileInput.addEventListener('change', handleFileSelect);
+        
+        function handleFileSelect() {
+            const file = fileInput.files[0];
+            if (file) {
+                document.getElementById('fileNameUpload').textContent = file.name;
+                document.getElementById('fileSizeUpload').textContent = (file.size / 1024).toFixed(2) + ' KB';
+                document.getElementById('filename').value = file.name;
+                document.getElementById('filePreviewUpload').style.display = 'block';
+                
+                const reader = new FileReader();
+                reader.onload = e => document.getElementById('file_base64').value = e.target.result;
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        function removeFile() {
+            fileInput.value = '';
+            document.getElementById('file_base64').value = '';
+            document.getElementById('filename').value = '';
+            document.getElementById('filePreviewUpload').style.display = 'none';
+        }
+        
+        function updatePatientName() {
+            const select = document.getElementById('patient_id');
+            const selectedOption = select.options[select.selectedIndex];
+            document.getElementById('patient_name').value = selectedOption.getAttribute('data-name') || '';
+        }
+        
+        function handleUpload(e) {
+            const btn = e.target.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Uploading...';
+            return true;
+        }
+        
+        // Initialize
+        checkIPFSStatus();
+        setInterval(checkIPFSStatus, 30000); // Check every 30 seconds
+    </script>
+</body>
+</html>

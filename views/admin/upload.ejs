@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Medical Records</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #0ea5a4 0%, #0d9488 50%, #14b8a6 100%);
+            min-height: 100vh;
+            padding: 20px;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .page-header {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.25);
+            color: white;
+            border-radius: 25px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        
+        .upload-card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 25px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .file-upload-area {
+            border: 3px dashed #0d9488;
+            border-radius: 20px;
+            padding: 50px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 30px;
+            background: linear-gradient(135deg, rgba(14,165,164,0.05), rgba(20,184,166,0.05));
+        }
+        
+        .file-upload-area:hover {
+            border-color: #14b8a6;
+            background: linear-gradient(135deg, rgba(14,165,164,0.1), rgba(20,184,166,0.1));
+            transform: scale(1.02);
+        }
+        
+        .file-upload-area.dragover {
+            background: linear-gradient(135deg, rgba(14,165,164,0.15), rgba(20,184,166,0.15));
+            border-color: #14b8a6;
+            transform: scale(1.02);
+        }
+        
+        .upload-icon {
+            font-size: 4rem;
+            color: #0d9488;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .form-control, .form-select {
+            border-radius: 12px;
+            border: 2px solid #e0e0e0;
+            padding: 12px 18px;
+            transition: all 0.3s;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: #0d9488;
+            box-shadow: 0 0 0 0.2rem rgba(13,148,136,0.15);
+        }
+        
+        .btn-upload {
+            background: linear-gradient(135deg, #0ea5a4, #14b8a6);
+            border: none;
+            color: white;
+            padding: 15px 40px;
+            border-radius: 25px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        .btn-upload:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(14,165,164,0.3);
+        }
+        
+        .btn-back {
+            background: #6c757d;
+            border: none;
+            color: white;
+            padding: 15px 40px;
+            border-radius: 25px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+            width: 100%;
+        }
+        
+        .btn-back:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+        
+        .file-preview {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .file-preview.show {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .file-info i {
+            font-size: 2.5rem;
+            color: #0d9488;
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- Page Header -->
+    <div class="page-header fade-in">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="mb-0"><i class="bi bi-cloud-upload me-2"></i>Upload Medical Record</h1>
+                <p class="mb-0 mt-2">Add new medical records to IPFS and Blockchain</p>
+            </div>
+            <a href="/admin/dashboard" class="btn btn-light">
+                <i class="bi bi-arrow-left me-2"></i>Back
+            </a>
+        </div>
+    </div>
+    
+    <!-- Upload Form -->
+    <div class="upload-card fade-in">
+        
+        <% if (success) { %>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle me-2"></i><%= success %>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <% } %>
+        
+        <% if (error) { %>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle me-2"></i><%= error %>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <% } %>
+        
+        <form action="/admin/upload" method="POST" enctype="multipart/form-data" onsubmit="return handleUpload(event)">
+            
+            <!-- File Upload Area -->
+            <div class="file-upload-area" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                <i class="bi bi-cloud-arrow-up upload-icon"></i>
+                <h4>Drag & Drop File Here</h4>
+                <p class="text-muted mb-0">or click to browse</p>
+                <input type="file" id="fileInput" name="file" hidden accept="image/*,.pdf,.doc,.docx">
+            </div>
+            
+            <!-- File Preview -->
+            <div class="file-preview" id="filePreview">
+                <div class="file-info">
+                    <i class="bi bi-file-earmark-check"></i>
+                    <div>
+                        <h6 class="mb-0" id="fileName">File Selected</h6>
+                        <small class="text-muted" id="fileSize">0 KB</small>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-danger ms-auto" onclick="removeFile()">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Hidden base64 field -->
+            <input type="hidden" id="file_base64" name="file_base64">
+            <input type="hidden" id="filename" name="filename">
+            
+            <!-- Patient Selection -->
+            <div class="row">
+                <div class="col-md-6 form-group">
+                    <label class="form-label" for="patient_id">
+                        <i class="bi bi-person-badge me-1"></i>Patient ID *
+                    </label>
+                    <select class="form-select" id="patient_id" name="patient_id" required onchange="updatePatientName()">
+                        <option value="">Select Patient</option>
+                        <% if (patients && patients.length > 0) { %>
+                            <% patients.forEach(patient => { %>
+                                <option value="<%= patient.patient_id %>" data-name="<%= patient.full_name || patient.patient_id %>">
+                                    <%= patient.patient_id %> - <%= patient.full_name || 'Unnamed' %>
+                                </option>
+                            <% }); %>
+                        <% } %>
+                    </select>
+                </div>
+                <div class="col-md-6 form-group">
+                    <label class="form-label" for="patient_name">
+                        <i class="bi bi-person me-1"></i>Patient Name
+                    </label>
+                    <input type="text" class="form-control" id="patient_name" name="patient_name" readonly>
+                </div>
+            </div>
+            
+            <!-- File Type and Disease -->
+            <div class="row">
+                <div class="col-md-6 form-group">
+                    <label class="form-label" for="file_type">
+                        <i class="bi bi-file-earmark-medical me-1"></i>File Type *
+                    </label>
+                    <select class="form-select" id="file_type" name="file_type" required>
+                        <option value="">Select Type</option>
+                        <option value="Blood Test">Blood Test</option>
+                        <option value="X-Ray">X-Ray</option>
+                        <option value="MRI Scan">MRI Scan</option>
+                        <option value="CT Scan">CT Scan</option>
+                        <option value="Prescription">Prescription</option>
+                        <option value="Lab Report">Lab Report</option>
+                        <option value="Medical Certificate">Medical Certificate</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="col-md-6 form-group">
+                    <label class="form-label" for="disease">
+                        <i class="bi bi-virus me-1"></i>Disease/Condition *
+                    </label>
+                    <input type="text" class="form-control" id="disease" name="disease" placeholder="e.g., Diabetes, Hypertension" required>
+                </div>
+            </div>
+            
+            <!-- Doctor and Uploaded By -->
+            <div class="row">
+                <div class="col-md-6 form-group">
+                    <label class="form-label" for="doctor">
+                        <i class="bi bi-person-badge me-1"></i>Doctor Name *
+                    </label>
+                    <input type="text" class="form-control" id="doctor" name="doctor" placeholder="Dr. John Doe" required>
+                </div>
+                <div class="col-md-6 form-group">
+                    <label class="form-label" for="uploaded_by">
+                        <i class="bi bi-upload me-1"></i>Uploaded By *
+                    </label>
+                    <input type="text" class="form-control" id="uploaded_by" name="uploaded_by" value="<%= user.username %>" readonly required>
+                </div>
+            </div>
+            
+            <!-- Status and Next Appointment -->
+            <div class="row">
+                <div class="col-md-6 form-group">
+                    <label class="form-label" for="file_status">
+                        <i class="bi bi-check-circle me-1"></i>File Status
+                    </label>
+                    <select class="form-select" id="file_status" name="file_status">
+                        <option value="Open">Open</option>
+                        <option value="Closed">Closed</option>
+                    </select>
+                </div>
+                <div class="col-md-6 form-group">
+                    <label class="form-label" for="next_appointment">
+                        <i class="bi bi-calendar-event me-1"></i>Next Appointment
+                    </label>
+                    <input type="date" class="form-control" id="next_appointment" name="next_appointment">
+                </div>
+            </div>
+            
+            <!-- Description -->
+            <div class="form-group">
+                <label class="form-label" for="description">
+                    <i class="bi bi-card-text me-1"></i>Description
+                </label>
+                <textarea class="form-control" id="description" name="description" rows="3" placeholder="Additional notes or observations..."></textarea>
+            </div>
+            
+            <!-- Submit Buttons -->
+            <div class="row mt-4">
+                <div class="col-md-8">
+                    <button type="submit" class="btn btn-upload">
+                        <i class="bi bi-send me-2"></i>Upload to IPFS & Blockchain
+                    </button>
+                </div>
+                <div class="col-md-4">
+                    <a href="/admin/dashboard" class="btn btn-back">
+                        <i class="bi bi-x-circle me-2"></i>Cancel
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Drag and Drop handlers
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
+        });
+        
+        dropZone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect();
+            }
+        });
+        
+        fileInput.addEventListener('change', handleFileSelect);
+        
+        function handleFileSelect() {
+            const file = fileInput.files[0];
+            if (file) {
+                document.getElementById('fileName').textContent = file.name;
+                document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(2) + ' KB';
+                document.getElementById('filename').value = file.name;
+                document.getElementById('filePreview').classList.add('show');
+                
+                // Convert to base64
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('file_base64').value = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        function removeFile() {
+            fileInput.value = '';
+            document.getElementById('file_base64').value = '';
+            document.getElementById('filename').value = '';
+            document.getElementById('filePreview').classList.remove('show');
+        }
+        
+        function updatePatientName() {
+            const select = document.getElementById('patient_id');
+            const selectedOption = select.options[select.selectedIndex];
+            const patientName = selectedOption.getAttribute('data-name');
+            document.getElementById('patient_name').value = patientName || '';
+        }
+        
+        function handleUpload(e) {
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Uploading...';
+            return true;
+        }
+    </script>
+</body>
+</html>
