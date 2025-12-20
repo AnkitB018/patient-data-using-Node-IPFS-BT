@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "blockchain": "python flask_blockchain_api.py"
+    "blockchain": "python3 flask_blockchain_api.py"
   },
   "keywords": [
     "blockchain",
