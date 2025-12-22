@@ -456,7 +456,7 @@
         </div>
         <div class="user-info">
             <div>
-                <div style="font-weight: 600;"><%= user.full_name || user.username %></div>
+                <div style="font-weight: 600;"><%= user.username %></div>
                 <div style="font-size: 0.85rem; color: rgba(255,255,255,0.6);">Administrator</div>
             </div>
             <div class="user-avatar">
@@ -483,9 +483,9 @@
             <div class="status-icon">
                 <i class="bi bi-diagram-3"></i>
             </div>
-            <div class="status-value" id="ipfsStatus">Checking...</div>
+            <div class="status-value" id="ipfsStatus"><%= ipfsConnected ? 'Running' : 'Offline' %></div>
             <div class="status-label">IPFS Status</div>
-            <span class="status-badge badge-success" id="ipfsBadge">Connecting...</span>
+            <span class="status-badge <%= ipfsConnected ? 'badge-success' : 'badge-error' %>" id="ipfsBadge"><%= ipfsConnected ? 'Local Node Active' : 'Node Not Running' %></span>
         </div>
         
         <div class="status-card blockchain">
@@ -503,18 +503,22 @@
             </div>
             <div class="status-value"><%= patients.length %></div>
             <div class="status-label">Total Patients</div>
-            <span class="status-badge badge-success"><%= patients.filter(p => p.full_name).length %> Registered</span>
+            <span class="status-badge badge-success"><%= patients.filter(p => p.username).length %> Registered</span>
         </div>
+    </div>
+    
+    <!-- Upload Medical Record Button -->
+    <div style="max-width: 1400px; margin: 0 auto; padding: 0 40px 20px 40px;">
+        <a href="/admin/upload" class="btn btn-lg w-100" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: white; font-weight: 600; font-size: 1.1rem; padding: 20px; border-radius: 15px; box-shadow: 0 10px 40px rgba(102,126,234,0.4); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 15px 50px rgba(102,126,234,0.5)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 10px 40px rgba(102,126,234,0.4)';">
+            <i class="bi bi-cloud-upload-fill me-3" style="font-size: 1.5rem;"></i>Upload Medical Record
+        </a>
     </div>
     
     <!-- Tabs Container -->
     <div class="tabs-container">
         <!-- Tabs Navigation -->
         <div class="tabs-nav">
-            <button class="tab-btn active" onclick="switchTab('upload')">
-                <i class="bi bi-cloud-upload me-2"></i>Upload Record
-            </button>
-            <button class="tab-btn" onclick="switchTab('blockchain')">
+            <button class="tab-btn active" onclick="switchTab('blockchain')">
                 <i class="bi bi-link-45deg me-2"></i>Blockchain Explorer
             </button>
             <button class="tab-btn" onclick="switchTab('records')">
@@ -528,126 +532,8 @@
             </button>
         </div>
         
-        <!-- Tab: Upload Record -->
-        <div id="upload-tab" class="tab-content active">
-            <div class="content-card">
-                <h3 class="mb-4"><i class="bi bi-cloud-upload me-2"></i>Upload Medical Record</h3>
-                
-                <% if (typeof success !== 'undefined' && success) { %>
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <i class="bi bi-check-circle me-2"></i><%= success %>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                <% } %>
-                
-                <% if (typeof error !== 'undefined' && error) { %>
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <i class="bi bi-exclamation-triangle me-2"></i><%= error %>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                <% } %>
-                
-                <form action="/admin/upload" method="POST" onsubmit="return handleUpload(event)">
-                    <div class="upload-area mb-4" id="dropZone" onclick="document.getElementById('fileInput').click()">
-                        <i class="bi bi-cloud-arrow-up upload-icon"></i>
-                        <h4>Drag & Drop File Here</h4>
-                        <p style="color: rgba(255,255,255,0.6);">or click to browse</p>
-                        <input type="file" id="fileInput" hidden accept="image/*,.pdf,.doc,.docx">
-                    </div>
-                    
-                    <div id="filePreviewUpload" style="display: none;" class="mb-3 p-3 border border-success rounded">
-                        <div class="d-flex align-items-center">
-                            <i class="bi bi-file-earmark-check text-success me-3" style="font-size: 2rem;"></i>
-                            <div class="flex-grow-1">
-                                <div id="fileNameUpload" style="font-weight: 600;"></div>
-                                <small id="fileSizeUpload" style="color: rgba(255,255,255,0.6);"></small>
-                            </div>
-                            <button type="button" class="btn btn-sm btn-danger" onclick="removeFile()">
-                                <i class="bi bi-x-lg"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <input type="hidden" id="file_base64" name="file_base64">
-                    <input type="hidden" id="filename" name="filename">
-                    
-                    <div class="row">
-                        <div class="col-md-6 form-group">
-                            <label class="form-label">Patient ID *</label>
-                            <select class="form-select" name="patient_id" id="patient_id" required onchange="updatePatientName()">
-                                <option value="">Select Patient</option>
-                                <% patients.forEach(patient => { %>
-                                    <option value="<%= patient.patient_id %>" data-name="<%= patient.full_name || patient.patient_id %>">
-                                        <%= patient.patient_id %> - <%= patient.full_name || 'Unnamed' %>
-                                    </option>
-                                <% }); %>
-                            </select>
-                        </div>
-                        <div class="col-md-6 form-group">
-                            <label class="form-label">Patient Name</label>
-                            <input type="text" class="form-control" id="patient_name" name="patient_name" readonly>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6 form-group">
-                            <label class="form-label">File Type *</label>
-                            <select class="form-select" name="file_type" required>
-                                <option value="">Select Type</option>
-                                <option value="Blood Test">Blood Test</option>
-                                <option value="X-Ray">X-Ray</option>
-                                <option value="MRI Scan">MRI Scan</option>
-                                <option value="CT Scan">CT Scan</option>
-                                <option value="Prescription">Prescription</option>
-                                <option value="Lab Report">Lab Report</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 form-group">
-                            <label class="form-label">Disease/Condition *</label>
-                            <input type="text" class="form-control" name="disease" placeholder="e.g., Diabetes" required>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6 form-group">
-                            <label class="form-label">Doctor Name *</label>
-                            <input type="text" class="form-control" name="doctor" placeholder="Dr. John Doe" required>
-                        </div>
-                        <div class="col-md-6 form-group">
-                            <label class="form-label">Uploaded By</label>
-                            <input type="text" class="form-control" name="uploaded_by" value="<%= user.username %>" readonly required>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6 form-group">
-                            <label class="form-label">Status</label>
-                            <select class="form-select" name="file_status">
-                                <option value="Open">Open</option>
-                                <option value="Closed">Closed</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 form-group">
-                            <label class="form-label">Next Appointment</label>
-                            <input type="date" class="form-control" name="next_appointment">
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Description</label>
-                        <textarea class="form-control" name="description" rows="3" placeholder="Additional notes..."></textarea>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary btn-lg w-100">
-                        <i class="bi bi-send me-2"></i>Upload to IPFS & Blockchain
-                    </button>
-                </form>
-            </div>
-        </div>
-        
         <!-- Tab: Blockchain Explorer -->
-        <div id="blockchain-tab" class="tab-content">
+        <div id="blockchain-tab" class="tab-content active">
             <div class="content-card">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h3><i class="bi bi-link-45deg me-2"></i>Blockchain Explorer</h3>
@@ -676,7 +562,7 @@
                         <option value="">Choose a patient...</option>
                         <% patients.forEach(patient => { %>
                             <option value="<%= patient.patient_id %>">
-                                <%= patient.patient_id %> - <%= patient.full_name || 'Unnamed' %>
+                                <%= patient.patient_id %> - <%= patient.username || 'Unnamed' %>
                             </option>
                         <% }); %>
                     </select>
@@ -702,7 +588,7 @@
                         <option value="">Choose a patient...</option>
                         <% patients.forEach(patient => { %>
                             <option value="<%= patient.patient_id %>">
-                                <%= patient.patient_id %> - <%= patient.full_name || 'Unnamed' %>
+                                <%= patient.patient_id %> - <%= patient.username || 'Unnamed' %>
                             </option>
                         <% }); %>
                     </select>
@@ -713,7 +599,8 @@
                         <div class="row">
                             <div class="col-md-6 form-group">
                                 <label class="form-label">Full Name</label>
-                                <input type="text" class="form-control" id="edit_full_name" name="full_name">
+                                <label for="edit_full_name" class="form-label small">Username</label>
+                                <input type="text" class="form-control" id="edit_full_name" name="full_name" readonly>
                             </div>
                             <div class="col-md-6 form-group">
                                 <label class="form-label">Gender</label>
@@ -834,20 +721,26 @@
         
         // Check IPFS Status
         async function checkIPFSStatus() {
+            console.log('🔍 Checking IPFS status...');
             try {
                 const response = await fetch('/admin/api/ipfs-status');
+                console.log('📡 IPFS API Response:', response.status);
                 const data = await response.json();
+                console.log('📊 IPFS Data:', data);
                 
                 if (data.success && data.connected) {
                     document.getElementById('ipfsStatus').textContent = 'Running';
                     document.getElementById('ipfsBadge').textContent = 'Local Node Active';
                     document.getElementById('ipfsBadge').className = 'status-badge badge-success';
+                    console.log('✅ IPFS is running');
                 } else {
                     document.getElementById('ipfsStatus').textContent = 'Offline';
                     document.getElementById('ipfsBadge').textContent = 'Node Not Running';
                     document.getElementById('ipfsBadge').className = 'status-badge badge-error';
+                    console.log('❌ IPFS is offline');
                 }
             } catch (error) {
+                console.error('❌ IPFS check error:', error);
                 document.getElementById('ipfsStatus').textContent = 'Error';
                 document.getElementById('ipfsBadge').textContent = 'Connection Failed';
                 document.getElementById('ipfsBadge').className = 'status-badge badge-error';
@@ -868,14 +761,20 @@
                     let html = '';
                     
                     blocks.forEach(block => {
-                        const cid = block.data.cid || 'N/A';
+                        // Check if block.data exists and has cid (genesis block doesn't have cid)
+                        const blockIndex = block.index !== undefined ? block.index : block.block_index;
+                        const blockHash = block.hash || block.block_hash;
+                        const isGenesisBlock = blockIndex === 0;
+                        const cid = (block.data && block.data.cid) || block.ipfs_cid || 'N/A';
                         const hasCid = cid !== 'N/A' && cid !== '';
+                        const patientName = (block.data && block.data['Patient Name']) || (isGenesisBlock ? 'Genesis Block' : 'N/A');
+                        const disease = (block.data && block.data['Disease']) || (isGenesisBlock ? 'System Initialization' : 'N/A');
                         
                         html += `
                             <div class="block-card">
                                 <div class="d-flex justify-content-between align-items-start mb-3">
                                     <div>
-                                        <div class="block-index">Block #${block.index}</div>
+                                        <div class="block-index">Block #${blockIndex}</div>
                                         <small style="color: rgba(255,255,255,0.5);">${block.timestamp}</small>
                                     </div>
                                     ${hasCid ? `<button class="btn-fetch" onclick="viewRecord('${cid}')">
@@ -885,10 +784,10 @@
                                 
                                 <div class="row mb-2">
                                     <div class="col-md-6">
-                                        <strong style="color: #00d2ff;">Patient:</strong> ${block.data['Patient Name'] || 'N/A'}
+                                        <strong style="color: #00d2ff;">Patient:</strong> ${patientName}
                                     </div>
                                     <div class="col-md-6">
-                                        <strong style="color: #00d2ff;">Disease:</strong> ${block.data['Disease'] || 'N/A'}
+                                        <strong style="color: #00d2ff;">Disease:</strong> ${disease}
                                     </div>
                                 </div>
                                 
@@ -898,7 +797,7 @@
                                 </div>` : ''}
                                 
                                 <div class="block-hash mb-2" style="font-size: 0.8rem;">
-                                    <strong>Hash:</strong> ${block.hash}
+                                    <strong>Hash:</strong> ${blockHash}
                                 </div>
                             </div>
                         `;
@@ -932,19 +831,20 @@
                 if (data.success && data.blocks.length > 0) {
                     let html = '';
                     data.blocks.forEach(block => {
+                        const hasCid = block.data && block.data.cid;
                         html += `
                             <div class="record-card">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div class="flex-grow-1">
-                                        <h5 style="color: #00d2ff;">${block.data['File Type'] || 'Medical Record'}</h5>
-                                        <p class="mb-2"><strong>Disease:</strong> ${block.data['Disease'] || 'N/A'}</p>
-                                        <p class="mb-2"><strong>Doctor:</strong> ${block.data['doctor'] || 'N/A'}</p>
-                                        <p class="mb-2"><strong>Date:</strong> ${block.data['Timestamp']}</p>
-                                        <p class="mb-0"><strong>Status:</strong> <span class="badge ${block.data['File Status'] === 'Closed' ? 'bg-secondary' : 'bg-success'}">${block.data['File Status'] || 'Open'}</span></p>
+                                        <h5 style="color: #00d2ff;">${(block.data && block.data['File Type']) || 'Medical Record'}</h5>
+                                        <p class="mb-2"><strong>Disease:</strong> ${(block.data && block.data['Disease']) || 'N/A'}</p>
+                                        <p class="mb-2"><strong>Doctor:</strong> ${(block.data && block.data['doctor']) || 'N/A'}</p>
+                                        <p class="mb-2"><strong>Date:</strong> ${(block.data && block.data['Timestamp']) || 'N/A'}</p>
+                                        <p class="mb-0"><strong>Status:</strong> <span class="badge ${(block.data && block.data['File Status']) === 'Closed' ? 'bg-secondary' : 'bg-success'}">${(block.data && block.data['File Status']) || 'Open'}</span></p>
                                     </div>
-                                    <button class="btn btn-primary" onclick="viewRecord('${block.data.cid}')">
+                                    ${hasCid ? `<button class="btn btn-primary" onclick="viewRecord('${block.data.cid}')">
                                         <i class="bi bi-eye me-2"></i>View Details
-                                    </button>
+                                    </button>` : `<span class="badge bg-secondary">Genesis Block</span>`}
                                 </div>
                             </div>
                         `;
@@ -1096,7 +996,7 @@
                 
                 if (data.success) {
                     const patient = data.patient;
-                    document.getElementById('edit_full_name').value = patient.full_name || '';
+                    document.getElementById('edit_full_name').value = patient.username || '';
                     document.getElementById('edit_gender').value = patient.gender || '';
                     document.getElementById('edit_dob').value = patient.date_of_birth || '';
                     document.getElementById('edit_blood').value = patient.blood_group || '';
@@ -1209,8 +1109,10 @@
         }
         
         // Initialize
+        console.log('🚀 Dashboard initializing...');
         checkIPFSStatus();
         setInterval(checkIPFSStatus, 30000); // Check every 30 seconds
+        console.log('✅ IPFS status check scheduled');
     </script>
 </body>
 </html>

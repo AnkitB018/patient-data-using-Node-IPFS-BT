@@ -37,12 +37,14 @@ router.get('/dashboard', async (req, res) => {
     try {
         const patients = await getAllPatients();
         const stats = await getBlockchainStats();
+        const ipfsConnected = await checkIPFSConnection();
         
         res.render('admin/dashboard', {
             title: 'Admin Dashboard',
             user: req.session.user,
             patients: patients,
-            stats: stats
+            stats: stats,
+            ipfsConnected: ipfsConnected
         });
     } catch (error) {
         console.error('Dashboard error:', error);
@@ -50,7 +52,8 @@ router.get('/dashboard', async (req, res) => {
             title: 'Admin Dashboard',
             user: req.session.user,
             patients: [],
-            stats: {}
+            stats: {},
+            ipfsConnected: false
         });
     }
 });
@@ -92,8 +95,18 @@ router.post('/upload', async (req, res) => {
             next_appointment,
             doctor,
             uploaded_by,
-            file_base64, // Base64 encoded file
-            filename
+            file_base64,
+            filename,
+            // New GA fields
+            symptoms,
+            primary_diagnosis,
+            secondary_diagnosis,
+            affected_body_parts,
+            treatments,
+            medications,
+            followup_required,
+            followup_date,
+            followup_notes
         } = req.body;
         
         // Validate required fields
@@ -107,18 +120,66 @@ router.post('/upload', async (req, res) => {
             });
         }
         
-        // Prepare complete metadata for IPFS (everything goes here)
+        // Process array fields - filter out empty values
+        const symptomsArray = Array.isArray(symptoms) 
+            ? symptoms.filter(s => s && s.trim() !== '') 
+            : (symptoms ? [symptoms] : []);
+            
+        const secondaryDiagnosisArray = Array.isArray(secondary_diagnosis)
+            ? secondary_diagnosis.filter(d => d && d.trim() !== '')
+            : (secondary_diagnosis ? [secondary_diagnosis] : []);
+            
+        const treatmentsArray = Array.isArray(treatments)
+            ? treatments.filter(t => t && t.trim() !== '')
+            : (treatments ? [treatments] : []);
+            
+        const medicationsArray = Array.isArray(medications)
+            ? medications.filter(m => m && m.trim() !== '')
+            : (medications ? [medications] : []);
+        
+        // Parse body parts (comma-separated string)
+        const bodyPartsArray = affected_body_parts 
+            ? affected_body_parts.split(',').map(p => p.trim()).filter(p => p !== '')
+            : [];
+        
+        // Prepare complete metadata for IPFS (clean and organized)
         const ipfsMetadata = {
+            // File information
             filename: filename || 'N/A',
             file_base64: file_base64 || null,
+            file_type: file_type,
+            
+            // Patient information
             patient_id: patient_id,
             patient_name: patient_name,
-            file_type: file_type,
-            disease: disease,
+            
+            // Medical information
+            primary_diagnosis: primary_diagnosis || disease, // Use primary_diagnosis if provided, else disease
+            secondary_diagnoses: secondaryDiagnosisArray,
+            symptoms: symptomsArray,
+            affected_body_parts: bodyPartsArray,
+            
+            // Treatment information
+            treatments_given: treatmentsArray,
+            medications: medicationsArray,
+            
+            // Status and doctor
             file_status: file_status || 'Open',
             doctor: doctor,
             uploaded_by: uploaded_by,
-            description: description || 'No description provided',
+            
+            // Follow-up information
+            followup_info: {
+                required: followup_required === 'yes',
+                date: followup_date || null,
+                notes: followup_notes || null
+            },
+            
+            // Additional notes
+            description: description || 'No additional notes',
+            next_appointment: next_appointment || null,
+            
+            // Timestamp
             timestamp: new Date().toLocaleString()
         };
         

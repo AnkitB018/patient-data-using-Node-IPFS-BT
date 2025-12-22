@@ -125,6 +125,38 @@
             transform: translateY(-2px);
         }
         
+        /* Add more button styles */
+        .btn-outline-primary {
+            border-color: #0d9488;
+            color: #0d9488;
+            background: transparent;
+            border-radius: 8px;
+            padding: 6px 15px;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+        
+        .btn-outline-primary:hover {
+            background: #0d9488;
+            color: white;
+            border-color: #0d9488;
+        }
+        
+        .btn-outline-danger {
+            border-color: #dc2626;
+            color: #dc2626;
+            padding: 6px 12px;
+        }
+        
+        .btn-outline-danger:hover {
+            background: #dc2626;
+            color: white;
+        }
+        
+        .input-group {
+            margin-bottom: 10px;
+        }
+        
         .file-preview {
             background: #f8f9fa;
             padding: 20px;
@@ -220,8 +252,8 @@
                         <option value="">Select Patient</option>
                         <% if (patients && patients.length > 0) { %>
                             <% patients.forEach(patient => { %>
-                                <option value="<%= patient.patient_id %>" data-name="<%= patient.full_name || patient.patient_id %>">
-                                    <%= patient.patient_id %> - <%= patient.full_name || 'Unnamed' %>
+                                <option value="<%= patient.patient_id %>" data-name="<%= patient.username || patient.patient_id %>">
+                                    <%= patient.patient_id %> - <%= patient.username || 'Unnamed' %>
                                 </option>
                             <% }); %>
                         <% } %>
@@ -296,10 +328,129 @@
                 </div>
             </div>
             
+            <!-- Detailed Medical Information -->
+            <div class="alert alert-info mt-4 mb-4" style="background: rgba(59,130,246,0.15); border: 2px solid rgba(59,130,246,0.5); border-radius: 15px; padding: 20px;">
+                <h5 class="mb-2" style="color: #2563eb;"><i class="bi bi-info-circle me-2"></i>Detailed Information</h5>
+                <p class="mb-0" style="color: #1e40af;">Please provide comprehensive medical details for better record management</p>
+            </div>
+            
+            <!-- Symptoms (Array) -->
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="bi bi-thermometer-half me-1"></i>Symptoms
+                </label>
+                <div id="symptomsContainer">
+                    <div class="input-group mb-2">
+                        <input type="text" class="form-control" name="symptoms[]" placeholder="e.g., fever, headache, cough">
+                        <button type="button" class="btn btn-outline-danger" onclick="removeField(this)" style="display:none;">
+                            <i class="bi bi-dash-circle"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="addSymptom()">
+                    <i class="bi bi-plus-circle me-1"></i>Add More Symptoms
+                </button>
+            </div>
+            
+            <!-- Primary and Secondary Diagnosis -->
+            <div class="row">
+                <div class="col-md-6 form-group">
+                    <label class="form-label" for="primary_diagnosis">
+                        <i class="bi bi-clipboard-pulse me-1"></i>Primary Diagnosis
+                    </label>
+                    <input type="text" class="form-control" id="primary_diagnosis" name="primary_diagnosis" placeholder="e.g., Pneumonia">
+                </div>
+                <div class="col-md-6 form-group">
+                    <label class="form-label">
+                        <i class="bi bi-clipboard-check me-1"></i>Secondary Diagnosis
+                    </label>
+                    <div id="secondaryDiagnosisContainer">
+                        <div class="input-group mb-2">
+                            <input type="text" class="form-control" name="secondary_diagnosis[]" placeholder="e.g., Hypertension">
+                            <button type="button" class="btn btn-outline-danger" onclick="removeField(this)" style="display:none;">
+                                <i class="bi bi-dash-circle"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addSecondaryDiagnosis()">
+                        <i class="bi bi-plus-circle me-1"></i>Add More
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Body Parts / Organ Affected -->
+            <div class="form-group">
+                <label class="form-label" for="affected_body_parts">
+                    <i class="bi bi-heart-pulse me-1"></i>Body Parts / Organs Affected
+                </label>
+                <input type="text" class="form-control" id="affected_body_parts" name="affected_body_parts" placeholder="e.g., lungs, chest, respiratory system">
+                <small class="text-muted">Separate multiple parts with commas</small>
+            </div>
+            
+            <!-- Treatments and Medications -->
+            <div class="row">
+                <div class="col-md-6 form-group">
+                    <label class="form-label">
+                        <i class="bi bi-capsule me-1"></i>Treatments Given
+                    </label>
+                    <div id="treatmentsContainer">
+                        <div class="input-group mb-2">
+                            <input type="text" class="form-control" name="treatments[]" placeholder="e.g., Oxygen therapy">
+                            <button type="button" class="btn btn-outline-danger" onclick="removeField(this)" style="display:none;">
+                                <i class="bi bi-dash-circle"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addTreatment()">
+                        <i class="bi bi-plus-circle me-1"></i>Add More Treatments
+                    </button>
+                </div>
+                <div class="col-md-6 form-group">
+                    <label class="form-label">
+                        <i class="bi bi-prescription2 me-1"></i>Medications
+                    </label>
+                    <div id="medicationsContainer">
+                        <div class="input-group mb-2">
+                            <input type="text" class="form-control" name="medications[]" placeholder="e.g., Amoxicillin 500mg">
+                            <button type="button" class="btn btn-outline-danger" onclick="removeField(this)" style="display:none;">
+                                <i class="bi bi-dash-circle"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addMedication()">
+                        <i class="bi bi-plus-circle me-1"></i>Add More Medications
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Follow-up Information -->
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="bi bi-calendar-check me-1"></i>Follow-up Information
+                </label>
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="form-label small">Follow-up Required?</label>
+                        <select class="form-select" name="followup_required">
+                            <option value="no">No</option>
+                            <option value="yes">Yes</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">Follow-up Date</label>
+                        <input type="date" class="form-control" name="followup_date">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">Follow-up Notes</label>
+                        <input type="text" class="form-control" name="followup_notes" placeholder="e.g., Check X-ray">
+                    </div>
+                </div>
+            </div>
+            
             <!-- Description -->
             <div class="form-group">
                 <label class="form-label" for="description">
-                    <i class="bi bi-card-text me-1"></i>Description
+                    <i class="bi bi-card-text me-1"></i>Additional Description
                 </label>
                 <textarea class="form-control" id="description" name="description" rows="3" placeholder="Additional notes or observations..."></textarea>
             </div>
@@ -389,6 +540,63 @@
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Uploading...';
             return true;
+        }
+        
+        // Add more field functions
+        function addSymptom() {
+            const container = document.getElementById('symptomsContainer');
+            const newField = document.createElement('div');
+            newField.className = 'input-group mb-2';
+            newField.innerHTML = `
+                <input type="text" class="form-control" name="symptoms[]" placeholder="e.g., fever, headache, cough">
+                <button type="button" class="btn btn-outline-danger" onclick="removeField(this)">
+                    <i class="bi bi-dash-circle"></i>
+                </button>
+            `;
+            container.appendChild(newField);
+        }
+        
+        function addSecondaryDiagnosis() {
+            const container = document.getElementById('secondaryDiagnosisContainer');
+            const newField = document.createElement('div');
+            newField.className = 'input-group mb-2';
+            newField.innerHTML = `
+                <input type="text" class="form-control" name="secondary_diagnosis[]" placeholder="e.g., Hypertension">
+                <button type="button" class="btn btn-outline-danger" onclick="removeField(this)">
+                    <i class="bi bi-dash-circle"></i>
+                </button>
+            `;
+            container.appendChild(newField);
+        }
+        
+        function addTreatment() {
+            const container = document.getElementById('treatmentsContainer');
+            const newField = document.createElement('div');
+            newField.className = 'input-group mb-2';
+            newField.innerHTML = `
+                <input type="text" class="form-control" name="treatments[]" placeholder="e.g., Oxygen therapy">
+                <button type="button" class="btn btn-outline-danger" onclick="removeField(this)">
+                    <i class="bi bi-dash-circle"></i>
+                </button>
+            `;
+            container.appendChild(newField);
+        }
+        
+        function addMedication() {
+            const container = document.getElementById('medicationsContainer');
+            const newField = document.createElement('div');
+            newField.className = 'input-group mb-2';
+            newField.innerHTML = `
+                <input type="text" class="form-control" name="medications[]" placeholder="e.g., Amoxicillin 500mg">
+                <button type="button" class="btn btn-outline-danger" onclick="removeField(this)">
+                    <i class="bi bi-dash-circle"></i>
+                </button>
+            `;
+            container.appendChild(newField);
+        }
+        
+        function removeField(button) {
+            button.parentElement.remove();
         }
     </script>
 </body>

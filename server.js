@@ -18,6 +18,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
 import patientRoutes from './routes/patient.js';
+import doctorRoutes from './routes/doctor.js';
 
 // ES6 module fix for __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -73,6 +74,9 @@ app.use('/admin', adminRoutes);
 
 // Patient routes (view own records)
 app.use('/patient', patientRoutes);
+
+// Doctor routes (view patient records with consent)
+app.use('/doctor', doctorRoutes);
 
 // ===========================================
 // ERROR HANDLING

@@ -32,6 +32,38 @@ pool.on('error', (err) => {
 // ===========================================
 
 /**
+ * Generate unique patient ID (format: P0001, P0002, etc.)
+ */
+export async function generateUniquePatientId() {
+    try {
+        // Get the count of existing patients
+        const result = await pool.query('SELECT COUNT(*) as count FROM patients');
+        const count = parseInt(result.rows[0].count);
+        
+        // Generate new ID with format P0001, P0002, etc.
+        const newId = `P${String(count + 1).padStart(4, '0')}`;
+        
+        // Double-check if ID already exists (safety check)
+        const existingCheck = await pool.query(
+            'SELECT patient_id FROM patients WHERE patient_id = $1',
+            [newId]
+        );
+        
+        if (existingCheck.rows.length > 0) {
+            // If somehow it exists, recursively try next number
+            const nextCount = count + 1;
+            const nextId = `P${String(nextCount + 1).padStart(4, '0')}`;
+            return nextId;
+        }
+        
+        return newId;
+    } catch (error) {
+        console.error('generateUniquePatientId error:', error);
+        throw error;
+    }
+}
+
+/**
  * Get user by username (checks both patients and doctors)
  */
 export async function getUserByUsername(username) {
@@ -278,6 +310,82 @@ export async function getBlockchainStats() {
 // ===========================================
 // UTILITY FUNCTIONS
 // ===========================================
+
+/**
+ * Get doctor by username
+ */
+export async function getDoctorByUsername(username) {
+    try {
+        const result = await pool.query(
+            'SELECT * FROM doctors WHERE username = $1',
+            [username]
+        );
+        return result.rows[0] || null;
+    } catch (error) {
+        console.error('getDoctorByUsername error:', error);
+        throw error;
+    }
+}
+
+/**
+ * Create new doctor
+ */
+export async function createDoctor(doctorData) {
+    const {
+        doctor_id,
+        username,
+        password,
+        gender,
+        specialization,
+        license_number,
+        contact,
+        email
+    } = doctorData;
+    
+    try {
+        const result = await pool.query(
+            `INSERT INTO doctors 
+            (doctor_id, username, password, gender, specialization, license_number, 
+             contact, email, updation_date)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
+            RETURNING *`,
+            [doctor_id, username, password, gender, specialization, license_number, 
+             contact, email]
+        );
+        
+        return result.rows[0];
+    } catch (error) {
+        console.error('createDoctor error:', error);
+        throw error;
+    }
+}
+
+/**
+ * Generate unique doctor ID (format: D0001, D0002, ...)
+ */
+export async function generateUniqueDoctorId() {
+    try {
+        const result = await pool.query(
+            `SELECT doctor_id FROM doctors 
+             WHERE doctor_id ~ '^D[0-9]+$' 
+             ORDER BY CAST(SUBSTRING(doctor_id FROM 2) AS INTEGER) DESC 
+             LIMIT 1`
+        );
+        
+        if (result.rows.length === 0) {
+            return 'D0001';
+        }
+        
+        const lastId = result.rows[0].doctor_id;
+        const numericPart = parseInt(lastId.substring(1)) + 1;
+        const newId = 'D' + numericPart.toString().padStart(4, '0');
+        
+        return newId;
+    } catch (error) {
+        console.error('generateUniqueDoctorId error:', error);
+        throw error;
+    }
+}
 
 /**
  * Execute raw query

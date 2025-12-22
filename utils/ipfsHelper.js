@@ -52,10 +52,17 @@ async function fetchFromIPFS(cid) {
  */
 async function checkIPFSConnection() {
     try {
-        await ipfs.version();
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('IPFS timeout')), 3000)
+        );
+        
+        const versionPromise = ipfs.version();
+        
+        await Promise.race([versionPromise, timeoutPromise]);
         return true;
     } catch (error) {
-        console.error('IPFS connection error:', error);
+        console.error('IPFS connection error:', error.message);
         return false;
     }
 }

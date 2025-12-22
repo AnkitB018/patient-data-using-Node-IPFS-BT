@@ -56,6 +56,8 @@
             position: relative;
             z-index: 1;
             animation: slideIn 0.6s ease-out;
+            max-height: 90vh;
+            overflow-y: auto;
         }
         
         @keyframes slideIn {
@@ -165,7 +167,7 @@
     <div class="register-container">
         <div class="register-header">
             <h1><i class="bi bi-person-plus-fill"></i> Register</h1>
-            <p>Create your account to get started</p>
+            <p>Create your account as Patient or Doctor</p>
         </div>
         
         <% if (success) { %>
@@ -180,11 +182,21 @@
             </div>
         <% } %>
         
-        <form action="/register" method="POST">
+        <form action="/register" method="POST" id="registerForm">
+            <!-- Role Selection -->
+            <div class="form-group">
+                <label class="form-label">Register As</label>
+                <select class="form-control" name="role" id="roleSelect" required onchange="toggleRoleFields()">
+                    <option value="">Select Role</option>
+                    <option value="patient">Patient</option>
+                    <option value="doctor">Doctor</option>
+                </select>
+            </div>
+            
             <div class="form-group">
                 <label class="form-label">Username</label>
                 <i class="bi bi-person input-icon"></i>
-                <input type="text" class="form-control" name="username" placeholder="Choose a username" required autofocus>
+                <input type="text" class="form-control" name="username" placeholder="Choose a username" required>
             </div>
             
             <div class="form-group">
@@ -194,10 +206,26 @@
             </div>
             
             <div class="form-group">
-                <label class="form-label">Patient ID (Optional)</label>
-                <i class="bi bi-card-text input-icon"></i>
-                <input type="text" class="form-control" name="patient_id" placeholder="Enter patient ID or leave blank">
-                <small class="text-muted">If left blank, username will be used as Patient ID</small>
+                <label class="form-label">Gender</label>
+                <select class="form-control" name="gender" required>
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            
+            <!-- Doctor-specific fields -->
+            <div id="doctorFields" style="display: none;">
+                <div class="form-group">
+                    <label class="form-label">Specialization</label>
+                    <input type="text" class="form-control" name="specialization" placeholder="e.g., Cardiologist, Neurologist">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">License Number</label>
+                    <input type="text" class="form-control" name="license_number" placeholder="Medical License Number">
+                </div>
             </div>
             
             <button type="submit" class="btn-register">
@@ -209,6 +237,25 @@
             Already have an account? <a href="/login">Login here</a>
         </div>
     </div>
+    
+    <script>
+        function toggleRoleFields() {
+            const role = document.getElementById('roleSelect').value;
+            const doctorFields = document.getElementById('doctorFields');
+            const specializationInput = document.querySelector('[name="specialization"]');
+            const licenseInput = document.querySelector('[name="license_number"]');
+            
+            if (role === 'doctor') {
+                doctorFields.style.display = 'block';
+                specializationInput.required = true;
+                licenseInput.required = true;
+            } else {
+                doctorFields.style.display = 'none';
+                specializationInput.required = false;
+                licenseInput.required = false;
+            }
+        }
+    </script>
     
 </body>
 </html>
