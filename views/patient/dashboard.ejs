@@ -431,8 +431,13 @@
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="consent-tab" data-bs-toggle="tab" data-bs-target="#consent-content" type="button" role="tab" style="color: #94a3b8; background: transparent; border: none; border-bottom: 2px solid transparent; padding: 1rem 1.5rem; font-weight: 600;">
-                        <i class="bi bi-shield-check me-2"></i>Consent Management
+                    <button class="nav-link" id="grant-consent-tab" data-bs-toggle="tab" data-bs-target="#grant-consent-content" type="button" role="tab" onclick="loadConsentData()" style="color: #94a3b8; background: transparent; border: none; border-bottom: 2px solid transparent; padding: 1rem 1.5rem; font-weight: 600;">
+                        <i class="bi bi-shield-plus me-2"></i>Grant Consent
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="view-consent-tab" data-bs-toggle="tab" data-bs-target="#view-consent-content" type="button" role="tab" onclick="loadReceivedConsents()" style="color: #94a3b8; background: transparent; border: none; border-bottom: 2px solid transparent; padding: 1rem 1.5rem; font-weight: 600;">
+                        <i class="bi bi-eye-fill me-2"></i>View Granted Records
                     </button>
                 </li>
             </ul>
@@ -488,28 +493,91 @@
                 </div>
                 
                 <!-- Consent Management Tab -->
-                <div class="tab-pane fade" id="consent-content" role="tabpanel">
-                    <div class="text-center p-5" style="background: rgba(15,52,96,0.3); border-radius: 15px; border: 1px dashed rgba(0,210,255,0.3);">
-                        <i class="bi bi-shield-lock" style="font-size: 4rem; color: #00d2ff; margin-bottom: 1.5rem;"></i>
-                        <h4 style="color: #00d2ff; margin-bottom: 1rem;">Consent Management System</h4>
-                        <p style="color: #94a3b8; font-size: 1.1rem; max-width: 600px; margin: 0 auto;">
-                            This feature allows you to grant and manage access permissions for your medical records.
-                            You can share specific records with doctors or other healthcare providers.
-                        </p>
-                        <div class="mt-4 p-4" style="background: rgba(0,210,255,0.1); border-radius: 10px; max-width: 500px; margin: 2rem auto 0;">
-                            <h5 style="color: #00d2ff; margin-bottom: 1rem;">
-                                <i class="bi bi-tools me-2"></i>Under Development
-                            </h5>
-                            <p style="color: #e4e4e7; margin: 0;">
-                                Features Coming Soon:
-                            </p>
-                            <ul style="color: #94a3b8; text-align: left; margin-top: 1rem; display: inline-block;">
-                                <li>Grant access to doctors</li>
-                                <li>Grant access to other patients</li>
-                                <li>Set expiry dates for consent</li>
-                                <li>Revoke access anytime</li>
-                                <li>View consent history</li>
-                            </ul>
+                <div class="tab-pane fade" id="grant-consent-content" role="tabpanel">
+                    <div class="profile-card">
+                        <h4 style="color: #00d2ff; margin-bottom: 2rem;">
+                            <i class="bi bi-shield-plus me-2"></i>Grant Consent to View Your Records
+                        </h4>
+                        
+                        <div class="row">
+                            <!-- Grant Consent Form -->
+                            <div class="col-md-6">
+                                <div style="background: rgba(0,210,255,0.1); padding: 2rem; border-radius: 15px; border: 1px solid rgba(0,210,255,0.3);">
+                                    <h5 style="color: #00d2ff; margin-bottom: 1.5rem;">Grant New Consent</h5>
+                                    <form id="grantConsentForm">
+                                        <div class="mb-3">
+                                            <label class="form-label" style="color: #e4e4e7;">Grant To:</label>
+                                            <select class="form-select" id="granteeType" onchange="loadGrantees()" style="background: rgba(30,41,59,0.8); color: white; border: 1px solid rgba(0,210,255,0.3);">
+                                                <option value="">Select Type</option>
+                                                <option value="doctor">Doctor</option>
+                                                <option value="patient">Patient</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label" style="color: #e4e4e7;">Select Person:</label>
+                                            <select class="form-select" id="granteeId" style="background: rgba(30,41,59,0.8); color: white; border: 1px solid rgba(0,210,255,0.3);">
+                                                <option value="">Choose...</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label" style="color: #e4e4e7;">Access Level:</label>
+                                            <select class="form-select" id="recordId" style="background: rgba(30,41,59,0.8); color: white; border: 1px solid rgba(0,210,255,0.3);">
+                                                <option value="all">All Records</option>
+                                                <% if (blocks && blocks.length > 0) { %>
+                                                    <% blocks.forEach(block => { %>
+                                                        <option value="<%= block.block_index %>">
+                                                            Block #<%= block.block_index %> - <%= block.file_type || 'Record' %>
+                                                        </option>
+                                                    <% }); %>
+                                                <% } %>
+                                            </select>
+                                        </div>
+                                        
+                                        <button type="submit" class="btn w-100" style="background: linear-gradient(135deg, #00d2ff, #3a7bd5); color: white; padding: 0.75rem; border: none; border-radius: 10px; font-weight: 600;">
+                                            <i class="bi bi-check-circle me-2"></i>Grant Consent
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                            
+                            <!-- Current Consents List -->
+                            <div class="col-md-6">
+                                <div style="background: rgba(30,41,59,0.6); padding: 2rem; border-radius: 15px; border: 1px solid rgba(0,210,255,0.2);">
+                                    <h5 style="color: #00d2ff; margin-bottom: 1.5rem;">Active Consents</h5>
+                                    <div id="consentsList" style="max-height: 400px; overflow-y: auto;">
+                                        <div class="text-center py-4">
+                                            <div class="spinner-border text-primary"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- View Granted Records Tab -->
+                <div class="tab-pane fade" id="view-consent-content" role="tabpanel">
+                    <div class="profile-card">
+                        <h4 style="color: #00d2ff; margin-bottom: 2rem;">
+                            <i class="bi bi-eye-fill me-2"></i>Records Shared With You
+                        </h4>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label" style="color: #e4e4e7;">Select Patient:</label>
+                                <select class="form-select" id="consentedPatientSelect" onchange="loadConsentedRecords()" style="background: rgba(30,41,59,0.8); color: white; border: 1px solid rgba(0,210,255,0.3);">
+                                    <option value="">Choose patient...</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div id="consentedRecordsList">
+                            <div class="text-center py-5" style="color: #94a3b8;">
+                                <i class="bi bi-inbox" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                                <h5>Select a patient to view their shared records</h5>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -837,6 +905,264 @@
                 `;
             }
         }
+    
+    // ===========================================
+    // CONSENT MANAGEMENT FUNCTIONS
+    // ===========================================
+    
+    // Load consent data (doctors, patients, current consents)
+    async function loadConsentData() {
+        console.log('Loading consent data...');
+        // First check session
+        try {
+            const sessionCheck = await fetch('/patient/api/debug-session');
+            const sessionData = await sessionCheck.json();
+            console.log('Session data:', sessionData);
+        } catch (error) {
+            console.error('Session check failed:', error);
+        }
+        
+        await loadCurrentConsents();
+    }
+    
+    // Load grantees based on type
+    async function loadGrantees() {
+        const type = document.getElementById('granteeType').value;
+        const select = document.getElementById('granteeId');
+        
+        console.log('loadGrantees called with type:', type);
+        select.innerHTML = '<option value="">Loading...</option>';
+        
+        if (!type) {
+            select.innerHTML = '<option value="">Choose...</option>';
+            return;
+        }
+        
+        try {
+            const endpoint = type === 'doctor' ? '/patient/api/all-doctors' : '/patient/api/all-patients';
+            console.log('Fetching from endpoint:', endpoint);
+            const response = await fetch(endpoint);
+            console.log('Response status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('Received data:', data);
+            
+            if (data.success) {
+                const items = type === 'doctor' ? data.doctors : data.patients;
+                console.log('Items to populate:', items.length);
+                select.innerHTML = '<option value="">Choose...</option>';
+                items.forEach(item => {
+                    const id = type === 'doctor' ? item.doctor_id : item.patient_id;
+                    const name = item.username;
+                    select.innerHTML += `<option value="${id}">${id} - ${name}</option>`;
+                });
+            } else {
+                select.innerHTML = '<option value="">Error: ' + data.error + '</option>';
+            }
+        } catch (error) {
+            console.error('Error loading grantees:', error);
+            select.innerHTML = '<option value="">Error loading</option>';
+        }
+    }
+    
+    // Grant consent form submit
+    document.getElementById('grantConsentForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const granteeType = document.getElementById('granteeType').value;
+        const granteeId = document.getElementById('granteeId').value;
+        const recordId = document.getElementById('recordId').value;
+        
+        if (!granteeType || !granteeId) {
+            alert('⚠️ Please select grantee type and person');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/patient/grant-consent', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    grantee_type: granteeType,
+                    grantee_id: granteeId,
+                    record_id: recordId
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert('✅ Consent granted successfully!');
+                document.getElementById('grantConsentForm').reset();
+                loadCurrentConsents();
+            } else {
+                alert('❌ ' + result.error);
+            }
+        } catch (error) {
+            alert('❌ Error: ' + error.message);
+        }
+    });
+    
+    // Load current consents
+    async function loadCurrentConsents() {
+        const container = document.getElementById('consentsList');
+        console.log('loadCurrentConsents called');
+        container.innerHTML = '<div class="text-center py-3"><div class="spinner-border text-primary"></div></div>';
+        
+        try {
+            console.log('Fetching granted consents...');
+            const response = await fetch('/patient/api/granted-consents');
+            console.log('Response status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('Consents data:', data);
+            
+            if (data.success && data.consents.length > 0) {
+                let html = '';
+                data.consents.forEach(consent => {
+                    const grantedTo = consent.doctor_name ? `Dr. ${consent.doctor_name}` : consent.patient_name;
+                    const recordInfo = consent.record_id ? `Block #${consent.record_id}` : 'All Records';
+                    
+                    html += `
+                        <div style="background: rgba(0,210,255,0.1); padding: 1rem; border-radius: 10px; margin-bottom: 1rem; border: 1px solid rgba(0,210,255,0.2);">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <strong style="color: #00d2ff;">${grantedTo}</strong>
+                                    <div style="color: #94a3b8; font-size: 0.9rem; margin-top: 0.5rem;">
+                                        <i class="bi bi-file-medical me-1"></i>${recordInfo}
+                                    </div>
+                                    <div style="color: #64748b; font-size: 0.85rem; margin-top: 0.25rem;">
+                                        Granted: ${new Date(consent.grant_date).toLocaleDateString()}
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-danger" onclick="withdrawConsent('${consent.consent_id}')" style="padding: 0.25rem 0.75rem;">
+                                    <i class="bi bi-x-circle"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = '<p class="text-center" style="color: #94a3b8;">No active consents</p>';
+            }
+        } catch (error) {
+            console.error('Error loading consents:', error);
+            container.innerHTML = '<div class="alert alert-danger">Error loading consents: ' + error.message + '</div>';
+        }
+    }
+    
+    // Withdraw consent
+    async function withdrawConsent(consentId) {
+        if (!confirm('Withdraw this consent?')) return;
+        
+        try {
+            const response = await fetch('/patient/withdraw-consent', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ consent_id: consentId })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert('✅ Consent withdrawn successfully!');
+                loadCurrentConsents();
+            } else {
+                alert('❌ ' + result.error);
+            }
+        } catch (error) {
+            alert('❌ Error: ' + error.message);
+        }
+    }
+    
+    // Load patients who granted consent to me
+    async function loadReceivedConsents() {
+        const select = document.getElementById('consentedPatientSelect');
+        select.innerHTML = '<option value="">Loading...</option>';
+        
+        try {
+            const response = await fetch('/patient/api/patients-granted-to-me');
+            const data = await response.json();
+            
+            if (data.success) {
+                select.innerHTML = '<option value="">Choose patient...</option>';
+                data.patients.forEach(patient => {
+                    select.innerHTML += `<option value="${patient.patient_id}">${patient.patient_id} - ${patient.username}</option>`;
+                });
+            }
+        } catch (error) {
+            select.innerHTML = '<option value="">Error loading</option>';
+        }
+    }
+    
+    // Load consented records
+    async function loadConsentedRecords() {
+        const patientId = document.getElementById('consentedPatientSelect').value;
+        const container = document.getElementById('consentedRecordsList');
+        
+        if (!patientId) {
+            container.innerHTML = '<div class="text-center py-5" style="color: #94a3b8;"><i class="bi bi-inbox" style="font-size: 3rem; margin-bottom: 1rem;"></i><h5>Select a patient</h5></div>';
+            return;
+        }
+        
+        container.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
+        
+        try {
+            const response = await fetch(`/patient/api/consented-blocks/${patientId}`);
+            const data = await response.json();
+            
+            if (data.success && data.blocks.length > 0) {
+                let html = '';
+                data.blocks.forEach(block => {
+                    html += `
+                        <div class="record-card">
+                            <div class="record-header">
+                                <div class="flex-grow-1">
+                                    <div class="record-title">
+                                        <i class="bi bi-file-earmark-medical me-2"></i>${block.file_type || 'Medical Record'}
+                                    </div>
+                                    <div class="record-meta">
+                                        <i class="bi bi-calendar-event"></i>
+                                        ${new Date(parseInt(block.timestamp)).toLocaleString()}
+                                    </div>
+                                    <div class="mt-2">
+                                        <span class="badge-status ${block.file_status === 'Closed' ? 'badge-closed' : 'badge-open'}">
+                                            ${block.file_status || 'Open'}
+                                        </span>
+                                        <span class="badge-status badge-closed ms-2">
+                                            Block #${block.block_index}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div>
+                                    ${block.ipfs_cid ? `
+                                        <button class="btn btn-view-record" onclick="viewRecord('${block.ipfs_cid}')">
+                                            <i class="bi bi-eye me-2"></i>View Details
+                                        </button>
+                                    ` : '<span class="badge-status badge-closed">No Data</span>'}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = '<div class="text-center py-5" style="color: #94a3b8;"><h5>No records shared</h5></div>';
+            }
+        } catch (error) {
+            container.innerHTML = '<div class="alert alert-danger">Error loading records</div>';
+        }
+    }
+
+    // Initialize on page load
+    console.log('Patient dashboard JavaScript loaded successfully');
     </script>
-</body>
-</html>

@@ -170,9 +170,25 @@ export async function createPatient(patientData) {
 }
 
 /**
+ * Get patient by ID
+ */
+export async function getPatientById(patient_id) {
+    try {
+        const result = await pool.query(
+            'SELECT * FROM patients WHERE patient_id = $1',
+            [patient_id]
+        );
+        return result.rows[0] || null;
+    } catch (error) {
+        console.error('getPatientById error:', error);
+        throw error;
+    }
+}
+
+/**
  * Update patient data
  */
-export async function updatePatient(username, updateData) {
+export async function updatePatient(patient_id, updateData) {
     try {
         const fields = [];
         const values = [];
@@ -192,12 +208,12 @@ export async function updatePatient(username, updateData) {
         }
         
         fields.push(`updation_date = CURRENT_TIMESTAMP`);
-        values.push(username);
+        values.push(patient_id);
         
         const query = `
             UPDATE patients 
             SET ${fields.join(', ')}
-            WHERE username = $${paramCount}
+            WHERE patient_id = $${paramCount}
             RETURNING *
         `;
         
@@ -242,14 +258,23 @@ export async function getAllBlocks() {
 }
 
 /**
- * Get blocks for specific patient
+ * Get blocks for specific patient (optionally filtered by doctor)
  */
-export async function getPatientBlocks(patientId) {
+export async function getPatientBlocks(patientId, doctorId = null) {
     try {
-        const result = await pool.query(
-            'SELECT * FROM blockchain_metadata WHERE patient_id = $1 ORDER BY block_index DESC',
-            [patientId]
-        );
+        let query, params;
+        
+        if (doctorId) {
+            // Filter by doctor_id
+            query = 'SELECT * FROM blockchain_metadata WHERE patient_id = $1 AND doc = $2 ORDER BY block_index DESC';
+            params = [patientId, doctorId];
+        } else {
+            // Admin can see all records
+            query = 'SELECT * FROM blockchain_metadata WHERE patient_id = $1 ORDER BY block_index DESC';
+            params = [patientId];
+        }
+        
+        const result = await pool.query(query, params);
         return result.rows;
     } catch (error) {
         console.error('getPatientBlocks error:', error);
@@ -269,16 +294,17 @@ export async function addBlock(blockData) {
         ipfs_cid,
         patient_id,
         file_type,
-        file_status
+        file_status,
+        doc
     } = blockData;
     
     try {
         const result = await pool.query(
             `INSERT INTO blockchain_metadata 
-            (block_hash, previous_hash, timestamp, nonce, ipfs_cid, patient_id, file_type, file_status)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            (block_hash, previous_hash, timestamp, nonce, ipfs_cid, patient_id, file_type, file_status, doc)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING *`,
-            [block_hash, previous_hash, timestamp, nonce, ipfs_cid, patient_id, file_type, file_status]
+            [block_hash, previous_hash, timestamp, nonce, ipfs_cid, patient_id, file_type, file_status, doc]
         );
         
         return result.rows[0];
@@ -388,6 +414,108 @@ export async function generateUniqueDoctorId() {
 }
 
 /**
+ * Get all doctors
+ */
+export async function getAllDoctors() {
+    try {
+        const result = await pool.query(
+            'SELECT * FROM doctors ORDER BY doctor_id'
+        );
+        return result.rows;
+    } catch (error) {
+        console.error('getAllDoctors error:', error);
+        throw error;
+    }
+}
+
+/**
+ * Assign doctor to patient
+ */
+export async function assignDoctorToPatient(doctorId, patientId) {
+    try {
+        // Check if relation already exists
+        const existing = await pool.query(
+            'SELECT * FROM doc_pat_relation WHERE doc_id = $1 AND pat_id = $2',
+            [doctorId, patientId]
+        );
+        
+        if (existing.rows.length > 0) {
+            throw new Error('Doctor already assigned to this patient');
+        }
+        
+        const result = await pool.query(
+            'INSERT INTO doc_pat_relation (doc_id, pat_id) VALUES ($1, $2) RETURNING *',
+            [doctorId, patientId]
+        );
+        
+        return result.rows[0];
+    } catch (error) {
+        console.error('assignDoctorToPatient error:', error);
+        throw error;
+    }
+}
+
+/**
+ * Remove doctor-patient relation
+ */
+export async function removeDoctorPatientRelation(doctorId, patientId) {
+    try {
+        await pool.query(
+            'DELETE FROM doc_pat_relation WHERE doc_id = $1 AND pat_id = $2',
+            [doctorId, patientId]
+        );
+    } catch (error) {
+        console.error('removeDoctorPatientRelation error:', error);
+        throw error;
+    }
+}
+
+/**
+ * Get all doctor-patient relations
+ */
+export async function getAllDoctorPatientRelations() {
+    try {
+        const result = await pool.query(
+            `SELECT 
+                dpr.id,
+                dpr.doc_id,
+                dpr.pat_id,
+                d.username as doctor_name,
+                d.specialization,
+                p.username as patient_name
+             FROM doc_pat_relation dpr
+             JOIN doctors d ON dpr.doc_id = d.doctor_id
+             JOIN patients p ON dpr.pat_id = p.patient_id
+             ORDER BY dpr.id DESC`
+        );
+        return result.rows;
+    } catch (error) {
+        console.error('getAllDoctorPatientRelations error:', error);
+        throw error;
+    }
+}
+
+/**
+ * Get patients for a specific doctor
+ */
+export async function getPatientsForDoctor(doctorId) {
+    try {
+        const result = await pool.query(
+            `SELECT p.* 
+             FROM patients p
+             JOIN doc_pat_relation dpr ON p.patient_id = dpr.pat_id
+             WHERE dpr.doc_id = $1
+             ORDER BY p.patient_id`,
+            [doctorId]
+        );
+        return result.rows;
+    } catch (error) {
+        console.error('getPatientsForDoctor error:', error);
+        throw error;
+    }
+}
+
+/**
  * Execute raw query
  */
 export async function query(text, params) {
@@ -405,6 +533,199 @@ export async function query(text, params) {
  */
 export async function closePool() {
     await pool.end();
+}
+
+// ===========================================
+// CONSENT OPERATIONS
+// ===========================================
+
+/**
+ * Grant consent to doctor or patient
+ */
+export async function grantConsent(patient_id, granted_to_doctor, granted_to_patient, record_id = null) {
+    try {
+        const consent_id = `C${Date.now()}`;
+        const query = `
+            INSERT INTO consent_records 
+            (consent_id, patient_id, granted_doctor, granted_patient, record_id, grant_date)
+            VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+            RETURNING *
+        `;
+        
+        const result = await pool.query(query, [
+            consent_id,
+            patient_id,
+            granted_to_doctor,
+            granted_to_patient,
+            record_id
+        ]);
+        
+        return result.rows[0];
+    } catch (error) {
+        console.error('grantConsent error:', error);
+        throw error;
+    }
+}
+
+/**
+ * Get all consents granted by a patient
+ */
+export async function getGrantedConsents(patient_id) {
+    try {
+        const query = `
+            SELECT c.*, 
+                   d.username as doctor_name,
+                   p.username as patient_name,
+                   b.file_type, b.timestamp as record_date
+            FROM consent_records c
+            LEFT JOIN doctors d ON c.granted_doctor = d.doctor_id
+            LEFT JOIN patients p ON c.granted_patient = p.patient_id
+            LEFT JOIN blockchain_metadata b ON c.record_id = b.block_index
+            WHERE c.patient_id = $1
+            ORDER BY c.grant_date DESC
+        `;
+        
+        const result = await pool.query(query, [patient_id]);
+        return result.rows;
+    } catch (error) {
+        console.error('getGrantedConsents error:', error);
+        throw error;
+    }
+}
+
+/**
+ * Get consents granted to a user (doctor or patient)
+ */
+export async function getReceivedConsents(user_id, user_type) {
+    try {
+        const field = user_type === 'doctor' ? 'granted_doctor' : 'granted_patient';
+        const query = `
+            SELECT c.*,
+                   p.username as patient_name,
+                   b.file_type, b.timestamp as record_date, b.ipfs_cid
+            FROM consent_records c
+            JOIN patients p ON c.patient_id = p.patient_id
+            LEFT JOIN blockchain_metadata b ON c.record_id = b.block_index
+            WHERE c.${field} = $1
+            ORDER BY c.grant_date DESC
+        `;
+        
+        const result = await pool.query(query, [user_id]);
+        return result.rows;
+    } catch (error) {
+        console.error('getReceivedConsents error:', error);
+        throw error;
+    }
+}
+
+/**
+ * Get unique patients who granted consent to a user
+ */
+export async function getPatientsWhoGrantedConsent(user_id, user_type) {
+    try {
+        const field = user_type === 'doctor' ? 'granted_doctor' : 'granted_patient';
+        const query = `
+            SELECT DISTINCT c.patient_id, p.username
+            FROM consent_records c
+            JOIN patients p ON c.patient_id = p.patient_id
+            WHERE c.${field} = $1
+            ORDER BY p.username
+        `;
+        
+        const result = await pool.query(query, [user_id]);
+        return result.rows;
+    } catch (error) {
+        console.error('getPatientsWhoGrantedConsent error:', error);
+        throw error;
+    }
+}
+
+/**
+ * Get consented blocks for a specific patient
+ */
+export async function getConsentedBlocks(patient_id, viewer_id, viewer_type) {
+    try {
+        const field = viewer_type === 'doctor' ? 'granted_doctor' : 'granted_patient';
+        
+        // Get all consents for this patient-viewer pair
+        const consentQuery = `
+            SELECT record_id 
+            FROM consent_records 
+            WHERE patient_id = $1 AND ${field} = $2
+        `;
+        
+        const consents = await pool.query(consentQuery, [patient_id, viewer_id]);
+        
+        // If any consent has null record_id, grant access to all records
+        const hasFullAccess = consents.rows.some(c => c.record_id === null);
+        
+        if (hasFullAccess) {
+            // Return all blocks for this patient
+            const allBlocksQuery = `
+                SELECT * FROM blockchain_metadata 
+                WHERE patient_id = $1 
+                ORDER BY block_index DESC
+            `;
+            const result = await pool.query(allBlocksQuery, [patient_id]);
+            return result.rows;
+        } else {
+            // Return only specific consented blocks
+            const blockIds = consents.rows.map(c => c.record_id).filter(id => id !== null);
+            
+            if (blockIds.length === 0) {
+                return [];
+            }
+            
+            const specificBlocksQuery = `
+                SELECT * FROM blockchain_metadata 
+                WHERE patient_id = $1 AND block_index = ANY($2)
+                ORDER BY block_index DESC
+            `;
+            const result = await pool.query(specificBlocksQuery, [patient_id, blockIds]);
+            return result.rows;
+        }
+    } catch (error) {
+        console.error('getConsentedBlocks error:', error);
+        throw error;
+    }
+}
+
+/**
+ * Withdraw consent
+ */
+export async function withdrawConsent(consent_id) {
+    try {
+        const query = 'DELETE FROM consent_records WHERE consent_id = $1 RETURNING *';
+        const result = await pool.query(query, [consent_id]);
+        return result.rows[0];
+    } catch (error) {
+        console.error('withdrawConsent error:', error);
+        throw error;
+    }
+}
+
+/**
+ * Check if user has consent to view a record
+ */
+export async function hasConsentToView(patient_id, viewer_id, viewer_type, record_id = null) {
+    try {
+        const field = viewer_type === 'doctor' ? 'granted_doctor' : 'granted_patient';
+        
+        // Check for full access (record_id IS NULL) or specific record access
+        const query = `
+            SELECT COUNT(*) as count 
+            FROM consent_records 
+            WHERE patient_id = $1 
+            AND ${field} = $2 
+            AND (record_id IS NULL OR record_id = $3)
+        `;
+        
+        const result = await pool.query(query, [patient_id, viewer_id, record_id]);
+        return parseInt(result.rows[0].count) > 0;
+    } catch (error) {
+        console.error('hasConsentToView error:', error);
+        throw error;
+    }
 }
 
 export default pool;

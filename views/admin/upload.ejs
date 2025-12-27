@@ -296,10 +296,19 @@
             <!-- Doctor and Uploaded By -->
             <div class="row">
                 <div class="col-md-6 form-group">
-                    <label class="form-label" for="doctor">
-                        <i class="bi bi-person-badge me-1"></i>Doctor Name *
+                    <label class="form-label" for="doc_id">
+                        <i class="bi bi-person-badge me-1"></i>Doctor (Uploader) *
                     </label>
-                    <input type="text" class="form-control" id="doctor" name="doctor" placeholder="Dr. John Doe" required>
+                    <select class="form-select" id="doc_id" name="doc_id" required>
+                        <option value="">Select Doctor</option>
+                        <% if (doctors && doctors.length > 0) { %>
+                            <% doctors.forEach(doctor => { %>
+                                <option value="<%= doctor.doctor_id %>">
+                                    <%= doctor.doctor_id %> - Dr. <%= doctor.username %>
+                                </option>
+                            <% }); %>
+                        <% } %>
+                    </select>
                 </div>
                 <div class="col-md-6 form-group">
                     <label class="form-label" for="uploaded_by">

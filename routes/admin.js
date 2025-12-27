@@ -5,7 +5,7 @@
 
 import express from 'express';
 import crypto from 'crypto';
-import { getAllPatients, getUserByUsername, updatePatient, getAllBlocks, getPatientBlocks as getPatientBlocksDB, addBlock, getBlockchainStats } from '../utils/dbHelper.js';
+import { getAllPatients, getUserByUsername, updatePatient, getAllBlocks, getPatientBlocks as getPatientBlocksDB, addBlock, getBlockchainStats, getAllDoctors, assignDoctorToPatient, removeDoctorPatientRelation, getAllDoctorPatientRelations } from '../utils/dbHelper.js';
 import { uploadMetadataToIPFS, fetchFromIPFS, checkIPFSConnection } from '../utils/ipfsHelper.js';
 import { addBlockToChain, getBlockchain } from '../utils/blockchainHelper.js';
 
@@ -65,10 +65,12 @@ router.get('/dashboard', async (req, res) => {
 router.get('/upload', async (req, res) => {
     try {
         const patients = await getAllPatients();
+        const doctors = await getAllDoctors();
         res.render('admin/upload', {
             title: 'Upload Medical Record',
             user: req.session.user,
             patients: patients,
+            doctors: doctors,
             success: null,
             error: null
         });
@@ -85,6 +87,7 @@ router.get('/upload', async (req, res) => {
 router.post('/upload', async (req, res) => {
     try {
         const patients = await getAllPatients();
+        const doctors = await getAllDoctors();
         const {
             patient_id,
             patient_name,
@@ -93,7 +96,7 @@ router.post('/upload', async (req, res) => {
             description,
             file_status,
             next_appointment,
-            doctor,
+            doc_id,
             uploaded_by,
             file_base64,
             filename,
@@ -110,11 +113,12 @@ router.post('/upload', async (req, res) => {
         } = req.body;
         
         // Validate required fields
-        if (!patient_id || !file_type || !uploaded_by || !disease || !doctor) {
+        if (!patient_id || !file_type || !uploaded_by || !disease || !doc_id) {
             return res.render('admin/upload', {
                 title: 'Upload Medical Record',
                 user: req.session.user,
                 patients: patients,
+                doctors: doctors,
                 success: null,
                 error: 'Please fill all required fields'
             });
@@ -206,7 +210,8 @@ router.post('/upload', async (req, res) => {
             ipfs_cid: cid,
             patient_id: patient_id,
             file_type: file_type,
-            file_status: file_status || 'Open'
+            file_status: file_status || 'Open',
+            doc: doc_id
         };
         
         // Add to database
@@ -218,17 +223,18 @@ router.post('/upload', async (req, res) => {
             title: 'Upload Medical Record',
             user: req.session.user,
             patients: patients,
+            doctors: doctors,
             success: `File uploaded successfully! CID: ${cid} | Block: ${blockResult.block_index}`,
             error: null
         });
         
     } catch (error) {
         console.error('Upload error:', error);
-        const patients = await getAllPatients();
         res.render('admin/upload', {
             title: 'Upload Medical Record',
             user: req.session.user,
-            patients: patients,
+            patients: await getAllPatients(),
+            doctors: await getAllDoctors(),
             success: null,
             error: 'Upload failed: ' + error.message
         });
@@ -383,6 +389,61 @@ router.post('/api/update-patient', async (req, res) => {
         res.json({ success: true, message: 'Patient data updated successfully' });
     } catch (error) {
         console.error('Patient update error:', error);
+        res.json({ success: false, error: error.message });
+    }
+});
+
+// ===========================================
+// DOCTOR-PATIENT MANAGEMENT
+// ===========================================
+
+// Get all doctor-patient relations
+router.get('/api/doctor-patient-relations', async (req, res) => {
+    try {
+        const relations = await getAllDoctorPatientRelations();
+        res.json({ success: true, relations });
+    } catch (error) {
+        console.error('Get relations error:', error);
+        res.json({ success: false, error: error.message });
+    }
+});
+
+// Get all doctors
+router.get('/api/doctors', async (req, res) => {
+    try {
+        const doctors = await getAllDoctors();
+        res.json({ success: true, doctors });
+    } catch (error) {
+        console.error('Get doctors error:', error);
+        res.json({ success: false, error: error.message });
+    }
+});
+
+// Assign doctor to patient
+router.post('/api/assign-doctor', async (req, res) => {
+    try {
+        const { doctor_id, patient_id } = req.body;
+        
+        if (!doctor_id || !patient_id) {
+            return res.json({ success: false, error: 'Doctor ID and Patient ID are required' });
+        }
+        
+        await assignDoctorToPatient(doctor_id, patient_id);
+        res.json({ success: true, message: 'Doctor assigned successfully' });
+    } catch (error) {
+        console.error('Assign doctor error:', error);
+        res.json({ success: false, error: error.message });
+    }
+});
+
+// Remove doctor-patient relation
+router.delete('/api/remove-doctor-patient/:doctorId/:patientId', async (req, res) => {
+    try {
+        const { doctorId, patientId } = req.params;
+        await removeDoctorPatientRelation(doctorId, patientId);
+        res.json({ success: true, message: 'Relation removed successfully' });
+    } catch (error) {
+        console.error('Remove relation error:', error);
         res.json({ success: false, error: error.message });
     }
 });

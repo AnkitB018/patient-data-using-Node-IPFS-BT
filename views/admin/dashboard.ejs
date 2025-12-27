@@ -527,6 +527,9 @@
             <button class="tab-btn" onclick="switchTab('edit-patient')">
                 <i class="bi bi-person-gear me-2"></i>Edit Patient Data
             </button>
+            <button class="tab-btn" onclick="switchTab('doctor-patient')">
+                <i class="bi bi-people-fill me-2"></i>Doctor-Patient Allocation
+            </button>
             <button class="tab-btn" onclick="switchTab('ga-viz')">
                 <i class="bi bi-graph-up me-2"></i>GA Visualization
             </button>
@@ -594,6 +597,44 @@
                     </select>
                 </div>
                 
+                <!-- Current Values Display -->
+                <div id="currentValuesDisplay" style="display: none;" class="mt-4 mb-4">
+                    <div class="card" style="background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); border-radius: 15px; padding: 25px;">
+                        <h5 style="color: #3b82f6; margin-bottom: 20px;">
+                            <i class="bi bi-info-circle me-2"></i>Current Patient Information
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <strong>Name:</strong> <span id="current_name">-</span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <strong>Gender:</strong> <span id="current_gender">-</span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <strong>Blood Group:</strong> <span id="current_blood">-</span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <strong>DOB:</strong> <span id="current_dob">-</span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <strong>Height:</strong> <span id="current_height">-</span> cm
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <strong>Weight:</strong> <span id="current_weight">-</span> kg
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <strong>Contact:</strong> <span id="current_contact">-</span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <strong>Email:</strong> <span id="current_email">-</span>
+                            </div>
+                            <div class="col-md-12 mb-3">
+                                <strong>Current Conditions:</strong> <span id="current_conditions">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div id="editPatientForm" style="display: none;" class="mt-4">
                     <form onsubmit="return updatePatientData(event)">
                         <div class="row">
@@ -637,12 +678,28 @@
                         <div class="row">
                             <div class="col-md-6 form-group">
                                 <label class="form-label">Phone</label>
-                                <input type="tel" class="form-control" id="edit_phone" name="phone">
+                                <input type="tel" class="form-control" id="edit_phone" name="contact">
                             </div>
                             <div class="col-md-6 form-group">
                                 <label class="form-label">Email</label>
                                 <input type="email" class="form-control" id="edit_email" name="email">
                             </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label class="form-label">Height (cm)</label>
+                                <input type="number" class="form-control" id="edit_height" name="height" placeholder="e.g., 175">
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="form-label">Weight (kg)</label>
+                                <input type="number" class="form-control" id="edit_weight" name="weight" placeholder="e.g., 70">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Current Medical Conditions</label>
+                            <textarea class="form-control" id="edit_conditions" name="current_conditions" rows="3" placeholder="e.g., Diabetes, Hypertension"></textarea>
                         </div>
                         
                         <div class="form-group">
@@ -670,6 +727,55 @@
                             <i class="bi bi-save me-2"></i>Save Changes
                         </button>
                     </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab: Doctor-Patient Allocation -->
+        <div id="doctor-patient-tab" class="tab-content">
+            <div class="content-card">
+                <h3 class="mb-4"><i class="bi bi-people-fill me-2"></i>Doctor-Patient Allocation</h3>
+                
+                <!-- Assign Doctor Form -->
+                <div class="card mb-4" style="background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); border-radius: 15px; padding: 30px;">
+                    <h5 style="color: #3b82f6; margin-bottom: 20px;">
+                        <i class="bi bi-plus-circle me-2"></i>Assign Doctor to Patient
+                    </h5>
+                    <form id="assignDoctorForm" onsubmit="return assignDoctor(event)">
+                        <div class="row">
+                            <div class="col-md-5">
+                                <label class="form-label">Select Doctor</label>
+                                <select class="form-select" id="selectDoctor" required>
+                                    <option value="">Choose a doctor...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label">Select Patient</label>
+                                <select class="form-select" id="selectPatient" required>
+                                    <option value="">Choose a patient...</option>
+                                    <% patients.forEach(patient => { %>
+                                        <option value="<%= patient.patient_id %>">
+                                            <%= patient.patient_id %> - <%= patient.username || 'Unnamed' %>
+                                        </option>
+                                    <% }); %>
+                                </select>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-plus-lg me-2"></i>Assign
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Current Allocations -->
+                <h5 class="mb-3"><i class="bi bi-list-ul me-2"></i>Current Allocations</h5>
+                <div id="doctorPatientList">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p class="mt-3">Loading allocations...</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -717,6 +823,7 @@
             
             // Load data when switching tabs
             if (tabName === 'blockchain') loadBlockchain(10);
+            if (tabName === 'doctor-patient') loadDoctorPatientData();
         }
         
         // Check IPFS Status
@@ -984,9 +1091,11 @@
         async function loadPatientData() {
             const patientId = document.getElementById('editPatientSelect').value;
             const form = document.getElementById('editPatientForm');
+            const currentDisplay = document.getElementById('currentValuesDisplay');
             
             if (!patientId) {
                 form.style.display = 'none';
+                currentDisplay.style.display = 'none';
                 return;
             }
             
@@ -996,17 +1105,34 @@
                 
                 if (data.success) {
                     const patient = data.patient;
+                    
+                    // Populate current values display
+                    document.getElementById('current_name').textContent = patient.username || 'N/A';
+                    document.getElementById('current_gender').textContent = patient.gender || 'N/A';
+                    document.getElementById('current_blood').textContent = patient.blood_group || 'N/A';
+                    document.getElementById('current_dob').textContent = patient.date_of_birth || 'N/A';
+                    document.getElementById('current_height').textContent = patient.height || 'N/A';
+                    document.getElementById('current_weight').textContent = patient.weight || 'N/A';
+                    document.getElementById('current_contact').textContent = patient.contact || 'N/A';
+                    document.getElementById('current_email').textContent = patient.email || 'N/A';
+                    document.getElementById('current_conditions').textContent = patient.current_conditions || 'N/A';
+                    
+                    // Populate form fields
                     document.getElementById('edit_full_name').value = patient.username || '';
                     document.getElementById('edit_gender').value = patient.gender || '';
                     document.getElementById('edit_dob').value = patient.date_of_birth || '';
                     document.getElementById('edit_blood').value = patient.blood_group || '';
-                    document.getElementById('edit_phone').value = patient.phone || '';
+                    document.getElementById('edit_phone').value = patient.contact || '';
                     document.getElementById('edit_email').value = patient.email || '';
+                    document.getElementById('edit_height').value = patient.height || '';
+                    document.getElementById('edit_weight').value = patient.weight || '';
+                    document.getElementById('edit_conditions').value = patient.current_conditions || '';
                     document.getElementById('edit_address').value = patient.address || '';
                     document.getElementById('edit_emerg_name').value = patient.emergency_contact_name || '';
                     document.getElementById('edit_emerg_phone').value = patient.emergency_contact_phone || '';
                     document.getElementById('edit_patient_id').value = patientId;
                     
+                    currentDisplay.style.display = 'block';
                     form.style.display = 'block';
                 }
             } catch (error) {
@@ -1106,6 +1232,120 @@
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Uploading...';
             return true;
+        }
+        
+        // Doctor-Patient Management Functions
+        async function loadDoctorPatientData() {
+            // Load doctors list
+            try {
+                const response = await fetch('/admin/api/doctors');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const select = document.getElementById('selectDoctor');
+                    select.innerHTML = '<option value="">Choose a doctor...</option>';
+                    data.doctors.forEach(doctor => {
+                        select.innerHTML += `<option value="${doctor.doctor_id}">
+                            ${doctor.doctor_id} - Dr. ${doctor.username} (${doctor.specialization || 'General'})
+                        </option>`;
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading doctors:', error);
+            }
+            
+            // Load current relations
+            loadDoctorPatientRelations();
+        }
+        
+        async function loadDoctorPatientRelations() {
+            const container = document.getElementById('doctorPatientList');
+            container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
+            
+            try {
+                const response = await fetch('/admin/api/doctor-patient-relations');
+                const data = await response.json();
+                
+                if (data.success && data.relations.length > 0) {
+                    let html = '<div class="table-responsive"><table class="table" style="color: white;"><thead><tr><th>Doctor ID</th><th>Doctor Name</th><th>Specialization</th><th>Patient ID</th><th>Patient Name</th><th>Action</th></tr></thead><tbody>';
+                    
+                    data.relations.forEach(rel => {
+                        html += `
+                            <tr>
+                                <td>${rel.doc_id}</td>
+                                <td>Dr. ${rel.doctor_name}</td>
+                                <td>${rel.specialization || 'General'}</td>
+                                <td>${rel.pat_id}</td>
+                                <td>${rel.patient_name}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-danger" onclick="removeRelation('${rel.doc_id}', '${rel.pat_id}')">
+                                        <i class="bi bi-trash"></i> Remove
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    
+                    html += '</tbody></table></div>';
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<div class="empty-state"><i class="bi bi-inbox"></i><h5>No doctor-patient allocations yet</h5></div>';
+                }
+            } catch (error) {
+                container.innerHTML = '<div class="alert alert-danger">Error loading relations: ' + error.message + '</div>';
+            }
+        }
+        
+        async function assignDoctor(event) {
+            event.preventDefault();
+            
+            const doctorId = document.getElementById('selectDoctor').value;
+            const patientId = document.getElementById('selectPatient').value;
+            
+            try {
+                const response = await fetch('/admin/api/assign-doctor', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ doctor_id: doctorId, patient_id: patientId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('✅ Doctor assigned successfully!');
+                    document.getElementById('assignDoctorForm').reset();
+                    loadDoctorPatientRelations();
+                } else {
+                    alert('❌ Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('❌ Error assigning doctor: ' + error.message);
+            }
+            
+            return false;
+        }
+        
+        async function removeRelation(doctorId, patientId) {
+            if (!confirm('Are you sure you want to remove this doctor-patient relation?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/admin/api/remove-doctor-patient/${doctorId}/${patientId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('✅ Relation removed successfully!');
+                    loadDoctorPatientRelations();
+                } else {
+                    alert('❌ Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('❌ Error removing relation: ' + error.message);
+            }
         }
         
         // Initialize
