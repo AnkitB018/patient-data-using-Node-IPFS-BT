@@ -17,7 +17,7 @@ DB_CONFIG = {
 
 class Block:
     def __init__(self, index, previous_hash, data, timestamp=None, nonce=0, hash=None, 
-                 patient_id=None, file_type=None, file_status=None, ipfs_cid=None):
+                 patient_id=None, file_type=None, file_status=None, ipfs_cid=None, doc=None):
         self.index = index
         self.timestamp = timestamp or int(time.time() * 1000)  # milliseconds
         self.data = data  # IPFS CID and metadata
@@ -28,6 +28,7 @@ class Block:
         self.file_type = file_type
         self.file_status = file_status
         self.ipfs_cid = ipfs_cid
+        self.doc = doc
 
     def calculate_hash(self):
         block_string = f"{self.index}{self.timestamp}{self.data}{self.previous_hash}{self.nonce}"
@@ -101,7 +102,7 @@ class Blockchain:
     def get_latest_block(self):
         return self.chain[-1] if self.chain else None
 
-    def add_block(self, data, patient_id=None, file_type=None, file_status='Open', ipfs_cid=None):
+    def add_block(self, data, patient_id=None, file_type=None, file_status='Open', ipfs_cid=None, doc=None):
         """Add a new block to blockchain and database"""
         previous_block = self.get_latest_block()
         
@@ -120,7 +121,8 @@ class Blockchain:
             patient_id=patient_id,
             file_type=file_type,
             file_status=file_status,
-            ipfs_cid=ipfs_cid
+            ipfs_cid=ipfs_cid,
+            doc=doc
         )
         
         # Mine the block
@@ -153,8 +155,8 @@ class Blockchain:
             # Insert block
             cursor.execute("""
                 INSERT INTO blockchain_metadata 
-                (block_hash, previous_hash, timestamp, nonce, ipfs_cid, patient_id, file_type, file_status)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                (block_hash, previous_hash, timestamp, nonce, ipfs_cid, patient_id, file_type, file_status, doc)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (
                 block.hash,
                 block.previous_hash,
@@ -163,7 +165,8 @@ class Blockchain:
                 block.ipfs_cid or block.data,
                 block.patient_id,
                 block.file_type,
-                block.file_status
+                block.file_status,
+                block.doc
             ))
             
             self.conn.commit()

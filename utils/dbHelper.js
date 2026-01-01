@@ -68,7 +68,7 @@ export async function generateUniquePatientId() {
  */
 export async function getUserByUsername(username) {
     try {
-        // Check patients table first
+        // Only check patients table
         const patientResult = await pool.query(
             'SELECT * FROM patients WHERE username = $1',
             [username]
@@ -81,48 +81,17 @@ export async function getUserByUsername(username) {
                 password: user.password,
                 role: 'patient',
                 patient_id: user.patient_id,
-                full_name: user.username, // Using username as name for now
+                full_name: user.username,
                 gender: user.gender,
                 date_of_birth: user.date_of_birth,
                 blood_group: user.blood_group,
                 phone: user.contact,
+                contact: user.contact,
                 email: user.email,
                 height: user.height,
                 weight: user.weight,
-                address: user.email, // placeholder
+                address: user.email,
                 current_conditions: user.current_conditions
-            };
-        }
-        
-        // Check doctors table
-        const doctorResult = await pool.query(
-            'SELECT * FROM doctors WHERE username = $1',
-            [username]
-        );
-        
-        if (doctorResult.rows.length > 0) {
-            const user = doctorResult.rows[0];
-            return {
-                username: user.username,
-                password: user.password,
-                role: 'doctor',
-                doctor_id: user.doctor_id,
-                full_name: user.username,
-                gender: user.gender,
-                specialization: user.specialization,
-                license_number: user.license_number,
-                phone: user.contact,
-                email: user.email
-            };
-        }
-        
-        // Check if it's admin (hardcoded for testing)
-        if (username === 'admin') {
-            return {
-                username: 'admin',
-                password: 'admin', // Plain text for testing
-                role: 'admin',
-                full_name: 'System Administrator'
             };
         }
         

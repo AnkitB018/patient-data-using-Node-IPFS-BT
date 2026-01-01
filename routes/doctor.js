@@ -92,7 +92,8 @@ router.get('/api/patient-records/:patientId', async (req, res) => {
             return res.json({ success: false, error: 'Access denied to this patient' });
         }
         
-        const blocks = await getPatientBlocks(patientId);
+        // Only fetch blocks uploaded by this doctor
+        const blocks = await getPatientBlocks(patientId, doctorId);
         res.json({ success: true, blocks });
     } catch (error) {
         console.error('Get patient records error:', error);
@@ -131,7 +132,6 @@ router.post('/upload', async (req, res) => {
             doctor,
             description,
             file_status,
-            next_appointment,
             symptoms,
             secondary_diagnosis,
             affected_body_parts,
@@ -168,7 +168,6 @@ router.post('/upload', async (req, res) => {
             'Timestamp': new Date().toISOString(),
             'Description': description || '',
             'File Status': file_status || 'Open',
-            'Next Appointment': next_appointment || '',
             'file_data': file_base64,
             'filename': filename,
             'symptoms': symptomsArray,
@@ -371,10 +370,16 @@ router.get('/api/received-consents', async (req, res) => {
 
 router.get('/api/patients-granted-to-me', async (req, res) => {
     try {
+        if (!req.session.user || !req.session.user.doctor_id) {
+            return res.json({ success: false, error: 'Not authenticated as doctor' });
+        }
+        
         const doctor_id = req.session.user.doctor_id;
         const patients = await getPatientsWhoGrantedConsent(doctor_id, 'doctor');
+        
         res.json({ success: true, patients });
     } catch (error) {
+        console.error('Error fetching patients granted to doctor:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });

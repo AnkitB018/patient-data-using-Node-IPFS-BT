@@ -57,29 +57,39 @@
                 </div>
             <% } else { %>
                 <% blocks.forEach(block => { %>
-                    <div class="card mb-3">
-                        <div class="card-header bg-primary text-white">
-                            <strong>Block #<%= block.index %></strong> - <%= block.timestamp %>
+                    <div class="card mb-3" style="border: 2px solid rgba(0,123,255,0.3); border-radius: 15px; overflow: hidden;">
+                        <div class="card-header" style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: white;">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong><i class="bi bi-file-earmark-medical me-2"></i>Block #<%= block.block_index %></strong>
+                                    <span class="ms-3"><%= block.file_type || 'Medical Record' %></span>
+                                </div>
+                                <small><i class="bi bi-calendar-event me-1"></i><%= new Date(block.timestamp).toLocaleString('en-US', {year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true}) %></small>
+                            </div>
                         </div>
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-md-6">
-                                    <p><strong>File Type:</strong> <%= block.data['File Type'] %></p>
-                                    <p><strong>Disease:</strong> <%= block.data['Disease'] %></p>
+                                    <p><strong>File Type:</strong> <span class="text-primary"><%= block.file_type || 'N/A' %></span></p>
+                                    <p><strong>Doctor:</strong> <span class="text-primary"><%= block.doc || 'N/A' %></span></p>
                                 </div>
                                 <div class="col-md-6">
                                     <p><strong>Status:</strong> 
-                                        <span class="badge <%= block.data['File Status'] === 'Open' ? 'bg-success' : 'bg-secondary' %>">
-                                            <%= block.data['File Status'] %>
+                                        <span class="badge <%= block.file_status === 'Closed' ? 'bg-secondary' : 'bg-success' %>">
+                                            <%= block.file_status || 'Open' %>
                                         </span>
                                     </p>
-                                    <p><strong>Uploaded By:</strong> <%= block.data['Uploaded By'] %></p>
+                                    <p><strong>Patient ID:</strong> <span class="text-primary"><%= block.patient_id || patientId %></span></p>
                                 </div>
                             </div>
-                            <p><strong>IPFS CID:</strong> <code><%= block.data.cid %></code></p>
-                            <button class="btn btn-sm btn-primary" onclick="fetchIPFS('<%= block.data.cid %>')">
-                                <i class="bi bi-cloud-download"></i> Fetch from IPFS
-                            </button>
+                            <div class="mt-2">
+                                <p class="mb-2"><strong>IPFS CID:</strong> <code style="background: rgba(0,123,255,0.1); padding: 0.25rem 0.5rem; border-radius: 5px;"><%= block.ipfs_cid %></code></p>
+                            </div>
+                            <div class="text-end">
+                                <button class="btn btn-primary" onclick="viewRecord('<%= block.ipfs_cid %>')">
+                                    <i class="bi bi-eye-fill me-2"></i>View Details
+                                </button>
+                            </div>
                         </div>
                     </div>
                 <% }); %>
@@ -87,19 +97,18 @@
         </div>
     </div>
     
-    <!-- IPFS Modal -->
-    <div class="modal fade" id="ipfsModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">IPFS Content</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <!-- Record Details Modal -->
+    <div class="modal fade" id="recordModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content" style="background: linear-gradient(135deg, #0f3460 0%, #16213e 100%); color: #e4e4e7; border: 2px solid rgba(0,210,255,0.3);">
+                <div class="modal-header" style="border-bottom: 2px solid rgba(0,210,255,0.3);">
+                    <h5 class="modal-title" style="color: #00d2ff;"><i class="bi bi-file-earmark-medical-fill me-2"></i>Medical Record Details</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body" id="ipfsContent">
-                    <div class="text-center">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
+                <div class="modal-body" id="recordContent" style="max-height: 80vh; overflow-y: auto;">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary"></div>
+                        <p class="mt-3">Loading record...</p>
                     </div>
                 </div>
             </div>
@@ -107,24 +116,220 @@
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script>
-        function fetchIPFS(cid) {
-            const modal = new bootstrap.Modal(document.getElementById('ipfsModal'));
+        async function viewRecord(cid) {
+            const modal = new bootstrap.Modal(document.getElementById('recordModal'));
             modal.show();
             
-            $.get('/admin/api/fetch-ipfs/' + cid, function(response) {
-                if (response.success) {
-                    let html = '<pre style="max-height: 500px; overflow-y: auto;">';
-                    html += JSON.stringify(response.data, null, 2);
-                    html += '</pre>';
-                    $('#ipfsContent').html(html);
+            document.getElementById('recordContent').innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div><p class="mt-3">Loading record...</p></div>';
+            
+            try {
+                const response = await fetch('/admin/api/fetch-ipfs/' + cid);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const data = result.data;
+                    
+                    // Normalize data keys
+                    const normalizedData = {
+                        patient_name: data.patient_name || data['Patient Name'] || 'N/A',
+                        patient_id: data.patient_id || data['Patient ID'] || 'N/A',
+                        file_type: data.file_type || data['File Type'] || 'N/A',
+                        primary_diagnosis: data.primary_diagnosis || data['Disease'] || 'N/A',
+                        file_status: data.file_status || data['File Status'] || 'Open',
+                        doctor: data.doctor || 'N/A',
+                        uploaded_by: data.uploaded_by || data['Uploaded By'] || 'N/A',
+                        timestamp: data.timestamp || data['Timestamp'] || 'N/A',
+                        description: data.description || data['Description'] || '',
+                        file_base64: data.file_base64 || data.file_data || null,
+                        filename: data.filename || 'N/A',
+                        symptoms: data.symptoms || [],
+                        secondary_diagnoses: data.secondary_diagnoses || data.secondary_diagnosis || [],
+                        affected_body_parts: data.affected_body_parts || [],
+                        treatments_given: data.treatments_given || data.treatments || [],
+                        medications: data.medications || [],
+                        followup_info: data.followup_info || {}
+                    };
+                    
+                    // Format timestamp
+                    let formattedTimestamp = normalizedData.timestamp;
+                    if (formattedTimestamp !== 'N/A') {
+                        try {
+                            const date = new Date(formattedTimestamp);
+                            formattedTimestamp = date.toLocaleString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: true
+                            });
+                        } catch (e) {}
+                    }
+                    normalizedData.timestamp = formattedTimestamp;
+                    
+                    let html = '<div class="container-fluid">';
+                    
+                    // Metadata
+                    html += '<div class="row mb-4">';
+                    html += '<div class="col-md-6">';
+                    html += `<div class="metadata-item"><strong>Patient Name:</strong> <span style="color: #e4e4e7;">${normalizedData.patient_name}</span></div>`;
+                    html += `<div class="metadata-item"><strong>Patient ID:</strong> <span style="color: #e4e4e7;">${normalizedData.patient_id}</span></div>`;
+                    html += `<div class="metadata-item"><strong>File Type:</strong> <span style="color: #e4e4e7;">${normalizedData.file_type}</span></div>`;
+                    html += `<div class="metadata-item"><strong>Primary Diagnosis:</strong> <span style="color: #e4e4e7;">${normalizedData.primary_diagnosis}</span></div>`;
+                    html += '</div>';
+                    html += '<div class="col-md-6">';
+                    html += `<div class="metadata-item"><strong>Status:</strong> <span class="badge ${normalizedData.file_status === 'Closed' ? 'bg-secondary' : 'bg-success'}">${normalizedData.file_status}</span></div>`;
+                    html += `<div class="metadata-item"><strong>Doctor:</strong> <span style="color: #e4e4e7;">${normalizedData.doctor}</span></div>`;
+                    html += `<div class="metadata-item"><strong>Uploaded By:</strong> <span style="color: #e4e4e7;">${normalizedData.uploaded_by}</span></div>`;
+                    html += `<div class="metadata-item"><strong>Timestamp:</strong> <span style="color: #e4e4e7;">${normalizedData.timestamp}</span></div>`;
+                    html += '</div>';
+                    html += '</div>';
+                    
+                    // Symptoms
+                    if (normalizedData.symptoms && normalizedData.symptoms.length > 0) {
+                        html += '<div class="alert alert-primary" style="background: rgba(59,130,246,0.15); border: 2px solid rgba(59,130,246,0.4);">';
+                        html += '<strong style="font-size: 1.1rem; color: #3b82f6;"><i class="bi bi-thermometer-half me-2"></i>Symptoms:</strong><br>';
+                        html += '<div class="mt-2">';
+                        html += normalizedData.symptoms.map(s => `<span class="badge bg-primary me-1 mb-1" style="font-size: 0.9rem; padding: 0.5rem 0.75rem;">${s}</span>`).join('');
+                        html += '</div></div>';
+                    }
+                    
+                    // Secondary Diagnoses
+                    if (normalizedData.secondary_diagnoses && normalizedData.secondary_diagnoses.length > 0) {
+                        html += '<div class="alert alert-warning" style="background: rgba(251,191,36,0.1); border-color: rgba(251,191,36,0.3);">';
+                        html += '<strong><i class="bi bi-clipboard-check me-2"></i>Secondary Diagnoses:</strong> ';
+                        html += normalizedData.secondary_diagnoses.map(d => `<span class="badge bg-warning text-dark me-1">${d}</span>`).join('');
+                        html += '</div>';
+                    }
+                    
+                    // Body Parts
+                    if (normalizedData.affected_body_parts && normalizedData.affected_body_parts.length > 0) {
+                        html += '<div class="alert alert-danger" style="background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3);">';
+                        html += '<strong><i class="bi bi-heart-pulse me-2"></i>Affected Areas:</strong> ';
+                        html += normalizedData.affected_body_parts.map(p => `<span class="badge bg-danger me-1">${p}</span>`).join('');
+                        html += '</div>';
+                    }
+                    
+                    // Treatments and Medications
+                    if ((normalizedData.treatments_given && normalizedData.treatments_given.length > 0) || (normalizedData.medications && normalizedData.medications.length > 0)) {
+                        html += '<div class="row mb-3">';
+                        if (normalizedData.treatments_given && normalizedData.treatments_given.length > 0) {
+                            html += '<div class="col-md-6">';
+                            html += '<div class="alert alert-success" style="background: rgba(34,197,94,0.15); border: 2px solid rgba(34,197,94,0.4);">';
+                            html += '<strong style="font-size: 1.1rem; color: #22c55e;"><i class="bi bi-capsule me-2"></i>Treatments:</strong><ul class="mt-2 mb-0" style="color: #e4e4e7; font-size: 0.95rem;">';
+                            normalizedData.treatments_given.forEach(t => html += `<li style="margin-bottom: 0.5rem;"><strong>${t}</strong></li>`);
+                            html += '</ul></div></div>';
+                        }
+                        if (normalizedData.medications && normalizedData.medications.length > 0) {
+                            html += '<div class="col-md-6">';
+                            html += '<div class="alert alert-info" style="background: rgba(6,182,212,0.15); border: 2px solid rgba(6,182,212,0.4);">';
+                            html += '<strong style="font-size: 1.1rem; color: #06b6d4;"><i class="bi bi-prescription2 me-2"></i>Medications:</strong><ul class="mt-2 mb-0" style="color: #e4e4e7; font-size: 0.95rem;">';
+                            normalizedData.medications.forEach(m => html += `<li style="margin-bottom: 0.5rem;"><strong>${m}</strong></li>`);
+                            html += '</ul></div></div>';
+                        }
+                        html += '</div>';
+                    }
+                    
+                    // Follow-up
+                    if (normalizedData.followup_info && normalizedData.followup_info.required) {
+                        html += '<div class="alert alert-secondary" style="background: rgba(148,163,184,0.15); border: 2px solid rgba(148,163,184,0.4);">';
+                        html += '<strong style="font-size: 1.1rem; color: #94a3b8;"><i class="bi bi-calendar-check me-2"></i>Follow-up Required:</strong> ';
+                        if (normalizedData.followup_info.date) html += `<span class="text-warning" style="font-weight: bold; font-size: 1rem;">📅 ${normalizedData.followup_info.date}</span> `;
+                        if (normalizedData.followup_info.notes) html += `<br><small style="color: #e4e4e7; font-size: 0.9rem; margin-top: 0.5rem; display: inline-block;">${normalizedData.followup_info.notes}</small>`;
+                        html += '</div>';
+                    }
+                    
+                    // Description
+                    if (normalizedData.description && normalizedData.description !== 'No additional notes') {
+                        html += '<div class="alert alert-light" style="background: rgba(241,245,249,0.15); border: 2px solid rgba(241,245,249,0.3); padding: 1.25rem;">';
+                        html += '<strong style="font-size: 1.1rem; color: #00d2ff;"><i class="bi bi-clipboard-text me-2"></i>Additional Notes:</strong>';
+                        html += `<p style="color: #e4e4e7; margin-top: 0.75rem; margin-bottom: 0; font-size: 0.95rem; line-height: 1.6;">${normalizedData.description}</p>`;
+                        html += '</div>';
+                    }
+                    
+                    // File Preview
+                    if (normalizedData.file_base64) {
+                        html += '<h5 class="mt-4 mb-3" style="color: #00d2ff;">File Preview:</h5>';
+                        const fileType = (normalizedData.file_type || '').toLowerCase();
+                        const filename = (normalizedData.filename || 'medical_file').toLowerCase();
+                        
+                        const isPDF = fileType.includes('pdf') || filename.endsWith('.pdf') || normalizedData.file_base64.startsWith('data:application/pdf');
+                        const isImage = fileType.includes('image') || fileType.includes('x-ray') || fileType.includes('scan') || 
+                                       fileType.includes('mri') || fileType.includes('ct') ||
+                                       filename.match(/\.(jpg|jpeg|png|gif|bmp)$/i) ||
+                                       normalizedData.file_base64.startsWith('data:image/');
+                        
+                        let fileData = normalizedData.file_base64;
+                        if (!fileData.startsWith('data:')) {
+                            if (isPDF) {
+                                fileData = 'data:application/pdf;base64,' + fileData;
+                            } else if (isImage) {
+                                fileData = 'data:image/jpeg;base64,' + fileData;
+                            }
+                        }
+                        
+                        if (isPDF) {
+                            html += `
+                                <div class="mb-3">
+                                    <div style="background: #1e293b; padding: 20px; border-radius: 15px;">
+                                        <iframe 
+                                            src="${fileData}#toolbar=1&navpanes=1&scrollbar=1" 
+                                            type="application/pdf"
+                                            width="100%" 
+                                            height="700px" 
+                                            style="border: none; border-radius: 10px; background: white;">
+                                        </iframe>
+                                    </div>
+                                    <div class="text-center mt-3">
+                                        <a href="${fileData}" download="${data.filename || 'medical_report.pdf'}" class="btn btn-primary">
+                                            <i class="bi bi-download me-2"></i>Download PDF
+                                        </a>
+                                    </div>
+                                </div>
+                            `;
+                        } else if (isImage) {
+                            html += `
+                                <div class="text-center mb-3">
+                                    <img src="${fileData}" class="img-fluid" alt="Medical Image" style="max-width: 100%; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.3);"/>
+                                    <div class="mt-3">
+                                        <a href="${fileData}" download="${data.filename || 'medical_image'}" class="btn btn-primary">
+                                            <i class="bi bi-download me-2"></i>Download Image
+                                        </a>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            const detectedType = data.file_base64 && data.file_base64.startsWith('data:application/pdf') ? 'PDF (detected)' : 
+                                               data.file_base64 && data.file_base64.startsWith('data:image/') ? 'Image (detected)' :
+                                               data.file_type || 'Unknown';
+                            
+                            html += `
+                                <div class="text-center p-5" style="background: rgba(15,52,96,0.4); border-radius: 15px;">
+                                    <i class="bi bi-file-earmark-text" style="font-size: 4rem; color: #00d2ff;"></i>
+                                    <p class="mt-3" style="color: #e4e4e7;">File type: ${detectedType}</p>
+                                    <p class="text-muted">Preview not available for this file type</p>
+                                    <small class="text-muted">Filename: ${data.filename || 'N/A'}</small>
+                                    <div class="mt-3">
+                                        <a href="${fileData}" download="${data.filename || 'medical_file'}" class="btn btn-primary">
+                                            <i class="bi bi-download me-2"></i>Download File
+                                        </a>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    } else {
+                        html += '<div class="alert alert-warning mt-4">No file attached to this record.</div>';
+                    }
+                    
+                    html += '</div>';
+                    document.getElementById('recordContent').innerHTML = html;
                 } else {
-                    $('#ipfsContent').html('<div class="alert alert-danger">Error: ' + response.error + '</div>');
+                    document.getElementById('recordContent').innerHTML = '<div class="alert alert-danger">Failed to load record</div>';
                 }
-            }).fail(function() {
-                $('#ipfsContent').html('<div class="alert alert-danger">Failed to fetch from IPFS</div>');
-            });
+            } catch (error) {
+                document.getElementById('recordContent').innerHTML = '<div class="alert alert-danger">Error: ' + error.message + '</div>';
+            }
         }
     </script>
 </body>

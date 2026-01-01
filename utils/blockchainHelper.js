@@ -5,7 +5,7 @@
 
 import axios from 'axios';
 
-const BLOCKCHAIN_API = process.env.BLOCKCHAIN_API_URL || 'http://localhost:5000';
+const BLOCKCHAIN_API = process.env.BLOCKCHAIN_API_URL || 'http://localhost:5002';
 
 /**
  * Add a block to the blockchain

@@ -95,7 +95,6 @@ router.post('/upload', async (req, res) => {
             disease,
             description,
             file_status,
-            next_appointment,
             doc_id,
             uploaded_by,
             file_base64,
@@ -146,6 +145,10 @@ router.post('/upload', async (req, res) => {
             ? affected_body_parts.split(',').map(p => p.trim()).filter(p => p !== '')
             : [];
         
+        // Get doctor name from doc_id
+        const doctorRecord = doctors.find(d => d.doctor_id === doc_id);
+        const doctorName = doctorRecord ? `Dr. ${doctorRecord.username}` : doc_id;
+        
         // Prepare complete metadata for IPFS (clean and organized)
         const ipfsMetadata = {
             // File information
@@ -169,7 +172,7 @@ router.post('/upload', async (req, res) => {
             
             // Status and doctor
             file_status: file_status || 'Open',
-            doctor: doctor,
+            doctor: doctorName,
             uploaded_by: uploaded_by,
             
             // Follow-up information
@@ -181,7 +184,6 @@ router.post('/upload', async (req, res) => {
             
             // Additional notes
             description: description || 'No additional notes',
-            next_appointment: next_appointment || null,
             
             // Timestamp
             timestamp: new Date().toLocaleString()
@@ -373,18 +375,34 @@ router.get('/api/patient-data/:patientId', async (req, res) => {
 
 router.post('/api/update-patient', async (req, res) => {
     try {
-        const { patient_id, ...updateData } = req.body;
+        const { patient_id, full_name, ...updateData } = req.body;
         
-        // Find the username associated with this patient_id
-        const patients = await getAllPatients();
-        const patient = patients.find(p => p.patient_id === patient_id);
-        
-        if (!patient || !patient.username) {
-            return res.json({ success: false, error: 'Patient not found' });
+        if (!patient_id) {
+            console.error('No patient_id provided');
+            return res.json({ success: false, error: 'Patient ID is required' });
         }
         
-        // Update the patient data in database
-        await updatePatient(patient.username, updateData);
+        console.log('Admin updating patient:', patient_id);
+        console.log('Update data:', updateData);
+        
+        // Remove empty strings and convert height/weight to numbers
+        const cleanedData = {};
+        for (const [key, value] of Object.entries(updateData)) {
+            if (value !== '' && value !== null && value !== undefined) {
+                if (key === 'height' || key === 'weight') {
+                    cleanedData[key] = parseFloat(value);
+                } else {
+                    cleanedData[key] = value;
+                }
+            }
+        }
+        
+        console.log('Cleaned data:', cleanedData);
+        
+        // Update the patient data in database using patient_id
+        const result = await updatePatient(patient_id, cleanedData);
+        
+        console.log('Update result:', result);
         
         res.json({ success: true, message: 'Patient data updated successfully' });
     } catch (error) {

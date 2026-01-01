@@ -95,6 +95,7 @@ def add_block():
         file_type = data.get('file_type') or data.get('File Type')
         file_status = data.get('file_status') or data.get('File Status', 'Open')
         ipfs_cid = data.get('cid') or data.get('ipfs_cid')
+        doc = data.get('doc') or data.get('doctor')
         
         # Add block to blockchain with database storage
         new_block = blockchain.add_block(
@@ -102,7 +103,8 @@ def add_block():
             patient_id=patient_id,
             file_type=file_type,
             file_status=file_status,
-            ipfs_cid=ipfs_cid
+            ipfs_cid=ipfs_cid,
+            doc=doc
         )
         
         return jsonify({
@@ -180,7 +182,7 @@ if __name__ == '__main__':
     print('║   Flask REST API                               ║')
     print('╚════════════════════════════════════════════════╝')
     print('')
-    print('🔗 Blockchain API running on: http://localhost:5000')
+    print('🔗 Blockchain API running on: http://localhost:5002')
     print('📦 Loaded blockchain with', len(blockchain.chain), 'blocks')
     print('')
     print('Available endpoints:')
@@ -196,4 +198,4 @@ if __name__ == '__main__':
     print('Press Ctrl+C to stop')
     print('════════════════════════════════════════════════')
     
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5002)

@@ -142,7 +142,18 @@ router.post('/profile', async (req, res) => {
 router.get('/api/record/:cid', async (req, res) => {
     try {
         const { cid } = req.params;
+        console.log('Fetching record from IPFS CID:', cid);
         const metadata = await fetchFromIPFS(cid);
+        console.log('IPFS data keys:', Object.keys(metadata));
+        console.log('IPFS data sample:', {
+            patient_name: metadata.patient_name,
+            patient_id: metadata.patient_id,
+            file_type: metadata.file_type,
+            doctor: metadata.doctor,
+            uploaded_by: metadata.uploaded_by,
+            timestamp: metadata.timestamp,
+            has_file: !!metadata.file_base64
+        });
         res.json({ success: true, data: metadata });
     } catch (error) {
         console.error('Record fetch error:', error);
@@ -156,28 +167,26 @@ router.get('/api/record/:cid', async (req, res) => {
 
 router.post('/api/update-profile', async (req, res) => {
     try {
-        const username = req.session.user.username;
-        const {
-            full_name,
-            gender,
-            date_of_birth,
-            blood_group,
-            phone,
-            address
-        } = req.body;
+        if (!req.session.user || !req.session.user.patient_id) {
+            return res.json({ success: false, error: 'Not authenticated' });
+        }
         
-        // Update patient data in database
+        const patient_id = req.session.user.patient_id;
+        
+        // Build update data object with only provided fields
         const updateData = {};
         if (req.body.gender) updateData.gender = req.body.gender;
         if (req.body.date_of_birth) updateData.date_of_birth = req.body.date_of_birth;
         if (req.body.blood_group) updateData.blood_group = req.body.blood_group;
         if (req.body.contact) updateData.contact = req.body.contact;
         if (req.body.email) updateData.email = req.body.email;
-        if (req.body.height) updateData.height = req.body.height;
-        if (req.body.weight) updateData.weight = req.body.weight;
+        if (req.body.height !== undefined && req.body.height !== '') updateData.height = parseFloat(req.body.height);
+        if (req.body.weight !== undefined && req.body.weight !== '') updateData.weight = parseFloat(req.body.weight);
         if (req.body.current_conditions !== undefined) updateData.current_conditions = req.body.current_conditions;
         
-        await updatePatient(username, updateData);
+        console.log('Updating patient profile:', patient_id, updateData);
+        
+        await updatePatient(patient_id, updateData);
         
         res.json({ success: true, message: 'Profile updated successfully' });
         

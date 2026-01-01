@@ -370,10 +370,6 @@
                                 <option value="Closed">Closed</option>
                             </select>
                         </div>
-                        <div class="col-md-6 form-group">
-                            <label class="form-label">Next Appointment</label>
-                            <input type="date" class="form-control" name="next_appointment">
-                        </div>
                     </div>
                     
                     <hr style="border-color: rgba(255,255,255,0.2); margin: 30px 0;">
@@ -571,7 +567,7 @@
                         <input type="hidden" id="update_patient_id" name="patient_id">
                         
                         <div class="row">
-                            <div class="col-md-6 form-group">
+                            <div class="col-md-12 form-group">
                                 <label class="form-label">Blood Group</label>
                                 <select class="form-select" name="blood_group" id="update_blood_group">
                                     <option value="">Not Specified</option>
@@ -584,10 +580,6 @@
                                     <option value="O+">O+</option>
                                     <option value="O-">O-</option>
                                 </select>
-                            </div>
-                            <div class="col-md-6 form-group">
-                                <label class="form-label">Date of Birth</label>
-                                <input type="date" class="form-control" name="date_of_birth" id="update_dob">
                             </div>
                         </div>
                         
@@ -620,6 +612,9 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <strong>Gender:</strong> <span id="display_gender" style="color: rgba(255,255,255,0.7);">-</span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Date of Birth:</strong> <span id="display_dob" style="color: rgba(255,255,255,0.7);">-</span>
                         </div>
                         <div class="col-md-6 mb-3">
                             <strong>Contact:</strong> <span id="display_contact" style="color: rgba(255,255,255,0.7);">-</span>
@@ -674,9 +669,16 @@
             <div class="row">
                 <div class="col-md-4 mb-3">
                     <label class="form-label">Select Patient:</label>
-                    <select class="form-select" id="consentedPatientSelectDoctor" onchange="loadConsentedRecordsDoctor()">
+                    <select class="form-select" id="consentedPatientSelectDoctor" onchange="loadConsentedRecordsDoctor()" onclick="if(this.options.length <= 1) loadPatientsGrantedToDoctor()">
                         <option value="">Choose patient...</option>
                     </select>
+                    <small class="text-muted">Click to refresh if empty</small>
+                </div>
+                <div class="col-md-8 mb-3">
+                    <label class="form-label">&nbsp;</label><br>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="loadPatientsGrantedToDoctor()">
+                        <i class="bi bi-arrow-clockwise me-2"></i>Refresh Patient List
+                    </button>
                 </div>
             </div>
             
@@ -819,7 +821,6 @@
                     // Populate editable fields
                     document.getElementById('update_patient_id').value = p.patient_id;
                     document.getElementById('update_blood_group').value = p.blood_group || '';
-                    document.getElementById('update_dob').value = p.date_of_birth || '';
                     document.getElementById('update_height').value = p.height || '';
                     document.getElementById('update_weight').value = p.weight || '';
                     document.getElementById('update_conditions').value = p.current_conditions || '';
@@ -827,6 +828,19 @@
                     // Display read-only fields
                     document.getElementById('display_name').textContent = p.username || 'N/A';
                     document.getElementById('display_gender').textContent = p.gender || 'N/A';
+                    
+                    // Format Date of Birth
+                    if (p.date_of_birth) {
+                        const dob = new Date(p.date_of_birth);
+                        document.getElementById('display_dob').textContent = dob.toLocaleDateString('en-US', { 
+                            year: 'numeric', 
+                            month: 'short', 
+                            day: 'numeric' 
+                        });
+                    } else {
+                        document.getElementById('display_dob').textContent = 'N/A';
+                    }
+                    
                     document.getElementById('display_contact').textContent = p.contact || 'N/A';
                     document.getElementById('display_email').textContent = p.email || 'N/A';
                     
@@ -921,7 +935,7 @@
             const modal = new bootstrap.Modal(document.getElementById('filePreviewModal'));
             const modalContent = document.getElementById('modalContent');
             
-            modalContent.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div><p class="mt-3">Fetching from IPFS...</p></div>';
+            modalContent.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div><p class="mt-3">Loading record...</p></div>';
             modal.show();
             
             try {
@@ -930,34 +944,204 @@
                 
                 if (result.success) {
                     const data = result.data;
-                    let html = `
-                        <div class="row">
-                            <div class="col-md-6 mb-3"><strong>Patient ID:</strong> ${data['Patient ID'] || 'N/A'}</div>
-                            <div class="col-md-6 mb-3"><strong>Patient Name:</strong> ${data['Patient Name'] || 'N/A'}</div>
-                            <div class="col-md-6 mb-3"><strong>File Type:</strong> ${data['File Type'] || 'N/A'}</div>
-                            <div class="col-md-6 mb-3"><strong>Disease:</strong> ${data['Disease'] || 'N/A'}</div>
-                            <div class="col-md-6 mb-3"><strong>Doctor:</strong> ${data['doctor'] || 'N/A'}</div>
-                            <div class="col-md-6 mb-3"><strong>Uploaded By:</strong> ${data['Uploaded By'] || 'N/A'}</div>
-                            <div class="col-md-6 mb-3"><strong>Status:</strong> ${data['File Status'] || 'Open'}</div>
-                            <div class="col-md-6 mb-3"><strong>Date:</strong> ${data['Timestamp'] || 'N/A'}</div>
-                        </div>
-                        <hr style="border-color: rgba(255,255,255,0.2);">
-                        <div class="mb-3"><strong>Description:</strong><p>${data['Description'] || 'No description'}</p></div>
-                        <div class="mb-3"><strong>IPFS CID:</strong><code style="background: rgba(255,255,255,0.1); padding: 5px 10px; border-radius: 5px;">${cid}</code></div>
-                    `;
                     
-                    if (data.file_data) {
-                        html += `<div class="mt-4"><strong>Attached File:</strong><br>
-                            <img src="${data.file_data}" alt="Medical File" style="max-width: 100%; border-radius: 10px; margin-top: 10px;">
-                        </div>`;
+                    // Normalize data keys - handle both formats (capitalized with spaces AND lowercase with underscores)
+                    const normalizedData = {
+                        patient_name: data.patient_name || data['Patient Name'] || 'N/A',
+                        patient_id: data.patient_id || data['Patient ID'] || 'N/A',
+                        file_type: data.file_type || data['File Type'] || 'N/A',
+                        primary_diagnosis: data.primary_diagnosis || data['Disease'] || 'N/A',
+                        file_status: data.file_status || data['File Status'] || 'Open',
+                        doctor: data.doctor || 'N/A',
+                        uploaded_by: data.uploaded_by || data['Uploaded By'] || 'N/A',
+                        timestamp: data.timestamp || data['Timestamp'] || 'N/A',
+                        description: data.description || data['Description'] || '',
+                        file_base64: data.file_base64 || data.file_data || null,
+                        filename: data.filename || 'N/A',
+                        symptoms: data.symptoms || [],
+                        secondary_diagnoses: data.secondary_diagnoses || data.secondary_diagnosis || [],
+                        affected_body_parts: data.affected_body_parts || [],
+                        treatments_given: data.treatments_given || data.treatments || [],
+                        medications: data.medications || [],
+                        followup_info: data.followup_info || {}
+                    };
+                    
+                    // Format timestamp to be readable
+                    let formattedTimestamp = normalizedData.timestamp;
+                    if (formattedTimestamp !== 'N/A') {
+                        try {
+                            const date = new Date(formattedTimestamp);
+                            formattedTimestamp = date.toLocaleString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: true
+                            });
+                        } catch (e) {
+                            // Keep original if parsing fails
+                        }
+                    }
+                    normalizedData.timestamp = formattedTimestamp;
+                    
+                    let html = '<div class=\"container-fluid\">';
+                    
+                    // Metadata Section
+                    html += '<div class=\"row mb-4\">';
+                    html += '<div class=\"col-md-6\">';
+                    html += `<div class=\"metadata-item\"><strong>Patient Name:</strong> <span style=\"color: #e4e4e7;\">${normalizedData.patient_name}</span></div>`;
+                    html += `<div class=\"metadata-item\"><strong>Patient ID:</strong> <span style=\"color: #e4e4e7;\">${normalizedData.patient_id}</span></div>`;
+                    html += `<div class=\"metadata-item\"><strong>File Type:</strong> <span style=\"color: #e4e4e7;\">${normalizedData.file_type}</span></div>`;
+                    html += `<div class=\"metadata-item\"><strong>Primary Diagnosis:</strong> <span style=\"color: #e4e4e7;\">${normalizedData.primary_diagnosis}</span></div>`;
+                    html += '</div>';
+                    html += '<div class=\"col-md-6\">';
+                    html += `<div class=\"metadata-item\"><strong>Status:</strong> <span class=\"badge ${normalizedData.file_status === 'Closed' ? 'bg-secondary' : 'bg-success'}\">${normalizedData.file_status}</span></div>`;
+                    html += `<div class=\"metadata-item\"><strong>Doctor:</strong> <span style=\"color: #e4e4e7;\">${normalizedData.doctor}</span></div>`;
+                    html += `<div class=\"metadata-item\"><strong>Uploaded By:</strong> <span style=\"color: #e4e4e7;\">${normalizedData.uploaded_by}</span></div>`;
+                    html += `<div class=\"metadata-item\"><strong>Timestamp:</strong> <span style=\"color: #e4e4e7;\">${normalizedData.timestamp}</span></div>`;
+                    html += '</div>';
+                    html += '</div>';
+                    
+                    // Symptoms
+                    if (normalizedData.symptoms && normalizedData.symptoms.length > 0) {
+                        html += '<div class=\"alert alert-primary\" style=\"background: rgba(59,130,246,0.15); border: 2px solid rgba(59,130,246,0.4);\">';
+                        html += '<strong style=\"font-size: 1.1rem; color: #3b82f6;\"><i class=\"bi bi-thermometer-half me-2\"></i>Symptoms:</strong><br>';
+                        html += '<div class=\"mt-2\">';
+                        html += normalizedData.symptoms.map(s => `<span class=\"badge bg-primary me-1 mb-1\" style=\"font-size: 0.9rem; padding: 0.5rem 0.75rem;\">${s}</span>`).join('');
+                        html += '</div></div>';
                     }
                     
+                    // Secondary Diagnoses
+                    if (normalizedData.secondary_diagnoses && normalizedData.secondary_diagnoses.length > 0) {
+                        html += '<div class=\"alert alert-warning\" style=\"background: rgba(251,191,36,0.1); border-color: rgba(251,191,36,0.3);\">';
+                        html += '<strong><i class=\"bi bi-clipboard-check me-2\"></i>Secondary Diagnoses:</strong> ';
+                        html += normalizedData.secondary_diagnoses.map(d => `<span class=\"badge bg-warning text-dark me-1\">${d}</span>`).join('');
+                        html += '</div>';
+                    }
+                    
+                    // Body Parts Affected
+                    if (normalizedData.affected_body_parts && normalizedData.affected_body_parts.length > 0) {
+                        html += '<div class=\"alert alert-danger\" style=\"background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3);\">';
+                        html += '<strong><i class=\"bi bi-heart-pulse me-2\"></i>Affected Areas:</strong> ';
+                        html += normalizedData.affected_body_parts.map(p => `<span class=\"badge bg-danger me-1\">${p}</span>`).join('');
+                        html += '</div>';
+                    }
+                    
+                    // Treatments and Medications
+                    if ((normalizedData.treatments_given && normalizedData.treatments_given.length > 0) || (normalizedData.medications && normalizedData.medications.length > 0)) {
+                        html += '<div class=\"row mb-3\">';
+                        if (normalizedData.treatments_given && normalizedData.treatments_given.length > 0) {
+                            html += '<div class=\"col-md-6\">';
+                            html += '<div class=\"alert alert-success\" style=\"background: rgba(34,197,94,0.15); border: 2px solid rgba(34,197,94,0.4);\">';
+                            html += '<strong style=\"font-size: 1.1rem; color: #22c55e;\"><i class=\"bi bi-capsule me-2\"></i>Treatments:</strong><ul class=\"mt-2 mb-0\" style=\"color: #e4e4e7; font-size: 0.95rem;\">';
+                            normalizedData.treatments_given.forEach(t => html += `<li style=\"margin-bottom: 0.5rem;\"><strong>${t}</strong></li>`);
+                            html += '</ul></div></div>';
+                        }
+                        if (normalizedData.medications && normalizedData.medications.length > 0) {
+                            html += '<div class=\"col-md-6\">';
+                            html += '<div class=\"alert alert-info\" style=\"background: rgba(6,182,212,0.15); border: 2px solid rgba(6,182,212,0.4);\">';
+                            html += '<strong style=\"font-size: 1.1rem; color: #06b6d4;\"><i class=\"bi bi-prescription2 me-2\"></i>Medications:</strong><ul class=\"mt-2 mb-0\" style=\"color: #e4e4e7; font-size: 0.95rem;\">';
+                            normalizedData.medications.forEach(m => html += `<li style=\"margin-bottom: 0.5rem;\"><strong>${m}</strong></li>`);
+                            html += '</ul></div></div>';
+                        }
+                        html += '</div>';
+                    }
+                    
+                    // Follow-up Information
+                    if (normalizedData.followup_info && normalizedData.followup_info.required) {
+                        html += '<div class=\"alert alert-secondary\" style=\"background: rgba(148,163,184,0.15); border: 2px solid rgba(148,163,184,0.4);\">';
+                        html += '<strong style=\"font-size: 1.1rem; color: #94a3b8;\"><i class=\"bi bi-calendar-check me-2\"></i>Follow-up Required:</strong> ';
+                        if (normalizedData.followup_info.date) html += `<span class=\"text-warning\" style=\"font-weight: bold; font-size: 1rem;\">\ud83d\udcc5 ${normalizedData.followup_info.date}</span> `;
+                        if (normalizedData.followup_info.notes) html += `<br><small style=\"color: #e4e4e7; font-size: 0.9rem; margin-top: 0.5rem; display: inline-block;\">${normalizedData.followup_info.notes}</small>`;
+                        html += '</div>';
+                    }
+                    
+                    // Description
+                    if (normalizedData.description && normalizedData.description !== 'No additional notes') {
+                        html += '<div class=\"alert alert-light\" style=\"background: rgba(241,245,249,0.15); border: 2px solid rgba(241,245,249,0.3); padding: 1.25rem;\">';
+                        html += '<strong style=\"font-size: 1.1rem; color: #00d2ff;\"><i class=\"bi bi-clipboard-text me-2\"></i>Additional Notes:</strong>';
+                        html += `<p style=\"color: #e4e4e7; margin-top: 0.75rem; margin-bottom: 0; font-size: 0.95rem; line-height: 1.6;\">${normalizedData.description}</p>`;
+                        html += '</div>';
+                    }
+                    
+                    // File Preview
+                    if (normalizedData.file_base64) {
+                        html += '<h5 class=\"mt-4 mb-3\" style=\"color: #00d2ff;\">File Preview:</h5>';
+                        const fileType = (normalizedData.file_type || '').toLowerCase();
+                        const filename = (normalizedData.filename || 'medical_file').toLowerCase();
+                        
+                        const isPDF = fileType.includes('pdf') || filename.endsWith('.pdf') || normalizedData.file_base64.startsWith('data:application/pdf');
+                        const isImage = fileType.includes('image') || fileType.includes('x-ray') || fileType.includes('scan') || 
+                                       fileType.includes('mri') || fileType.includes('ct') ||
+                                       filename.match(/\\.(jpg|jpeg|png|gif|bmp)$/i) ||
+                                       normalizedData.file_base64.startsWith('data:image/');
+                        
+                        let fileData = normalizedData.file_base64;
+                        if (!fileData.startsWith('data:')) {
+                            if (isPDF) {
+                                fileData = 'data:application/pdf;base64,' + fileData;
+                            } else if (isImage) {
+                                fileData = 'data:image/jpeg;base64,' + fileData;
+                            }
+                        }
+                        
+                        if (isPDF) {
+                            html += `
+                                <div class=\"mb-3\">
+                                    <div style=\"background: #1e293b; padding: 20px; border-radius: 15px;\">
+                                        <iframe 
+                                            src=\"${fileData}#toolbar=1&navpanes=1&scrollbar=1\" 
+                                            type=\"application/pdf\"
+                                            width=\"100%\" 
+                                            height=\"700px\" 
+                                            style=\"border: none; border-radius: 10px; background: white;\">
+                                        </iframe>
+                                    </div>
+                                    <div class=\"text-center mt-3\">
+                                        <a href=\"${fileData}\" download=\"${normalizedData.filename}\" class=\"btn btn-primary\">
+                                            <i class=\"bi bi-download me-2\"></i>Download PDF
+                                        </a>
+                                    </div>
+                                </div>
+                            `;
+                        } else if (isImage) {
+                            html += `
+                                <div class=\"text-center mb-3\">
+                                    <img src=\"${fileData}\" class=\"img-fluid\" alt=\"Medical Image\" style=\"max-width: 100%; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.3);\"/>
+                                    <div class=\"mt-3\">
+                                        <a href=\"${fileData}\" download=\"${normalizedData.filename}\" class=\"btn btn-primary\">
+                                            <i class=\"bi bi-download me-2\"></i>Download Image
+                                        </a>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            html += `
+                                <div class=\"text-center p-5\" style=\"background: rgba(15,52,96,0.4); border-radius: 15px;\">
+                                    <i class=\"bi bi-file-earmark-text\" style=\"font-size: 4rem; color: #00d2ff;\"></i>
+                                    <p class=\"mt-3\" style=\"color: #e4e4e7;\">File type: ${normalizedData.file_type}</p>
+                                    <p class=\"text-muted\">Preview not available for this file type</p>
+                                    <small class=\"text-muted\">Filename: ${normalizedData.filename}</small>
+                                    <div class=\"mt-3\">
+                                        <a href=\"${fileData}\" download=\"${normalizedData.filename}\" class=\"btn btn-primary\">
+                                            <i class=\"bi bi-download me-2\"></i>Download File
+                                        </a>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    } else {
+                        html += '<div class=\"alert alert-warning mt-4\">No file attached to this record.</div>';
+                    }
+                    
+                    html += '</div>';
                     modalContent.innerHTML = html;
                 } else {
-                    modalContent.innerHTML = '<div class="alert alert-danger">Error fetching record: ' + result.error + '</div>';
+                    modalContent.innerHTML = '<div class=\"alert alert-danger\">Error fetching record: ' + result.error + '</div>';
                 }
             } catch (error) {
-                modalContent.innerHTML = '<div class="alert alert-danger">Error: ' + error.message + '</div>';
+                modalContent.innerHTML = '<div class=\"alert alert-danger\">Error: ' + error.message + '</div>';
             }
         }
         
@@ -1096,6 +1280,11 @@
         // Load patients who granted consent to this doctor
         async function loadPatientsGrantedToDoctor() {
             const select = document.getElementById('consentedPatientSelectDoctor');
+            
+            if (!select) {
+                return;
+            }
+            
             select.innerHTML = '<option value="">Loading...</option>';
             
             try {
@@ -1104,9 +1293,15 @@
                 
                 if (data.success) {
                     select.innerHTML = '<option value="">Choose patient...</option>';
-                    data.patients.forEach(patient => {
-                        select.innerHTML += `<option value="${patient.patient_id}">${patient.patient_id} - ${patient.username}</option>`;
-                    });
+                    if (data.patients && data.patients.length > 0) {
+                        data.patients.forEach(patient => {
+                            select.innerHTML += `<option value="${patient.patient_id}">${patient.patient_id} - ${patient.username}</option>`;
+                        });
+                    } else {
+                        select.innerHTML = '<option value="">No patients have granted you access</option>';
+                    }
+                } else {
+                    select.innerHTML = '<option value="">Error loading</option>';
                 }
             } catch (error) {
                 select.innerHTML = '<option value="">Error loading</option>';
