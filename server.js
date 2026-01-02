@@ -19,6 +19,7 @@ import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
 import patientRoutes from './routes/patient.js';
 import doctorRoutes from './routes/doctor.js';
+import gaRoutes from './routes/ga.js';
 
 // ES6 module fix for __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -77,6 +78,9 @@ app.use('/patient', patientRoutes);
 
 // Doctor routes (view patient records with consent)
 app.use('/doctor', doctorRoutes);
+
+// GA routes (genetic algorithm recommendations)
+app.use('/api/ga', gaRoutes);
 
 // ===========================================
 // ERROR HANDLING

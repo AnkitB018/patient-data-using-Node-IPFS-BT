@@ -36,6 +36,7 @@ router.use(requireAdmin);
 router.get('/dashboard', async (req, res) => {
     try {
         const patients = await getAllPatients();
+        const doctors = await getAllDoctors();
         const stats = await getBlockchainStats();
         const ipfsConnected = await checkIPFSConnection();
         
@@ -43,6 +44,7 @@ router.get('/dashboard', async (req, res) => {
             title: 'Admin Dashboard',
             user: req.session.user,
             patients: patients,
+            doctors: doctors,
             stats: stats,
             ipfsConnected: ipfsConnected
         });
@@ -52,6 +54,7 @@ router.get('/dashboard', async (req, res) => {
             title: 'Admin Dashboard',
             user: req.session.user,
             patients: [],
+            doctors: [],
             stats: {},
             ipfsConnected: false
         });
