@@ -366,6 +366,29 @@ export async function recommendRecordsGA(searchCriteria, limit = 10) {
         // Import IPFS helper
         const { fetchFromIPFS } = await import('./ipfsHelper.js');
         
+        // Build WHERE clause for doctor access filter
+        let whereClause = `
+            WHERE bm.block_index IS NOT NULL 
+              AND bm.block_index > 0
+              AND bm.patient_id IS NOT NULL
+        `;
+        
+        const queryParams = [];
+        
+        // If doctor access filter is provided, restrict to doctor's accessible records
+        if (searchCriteria.doctor_access_filter) {
+            whereClause += `
+              AND (
+                bm.doc = $1
+                OR bm.patient_id IN (
+                    SELECT patient_id FROM consent_records 
+                    WHERE granted_doctor = $1
+                )
+              )
+            `;
+            queryParams.push(searchCriteria.doctor_access_filter);
+        }
+        
         // Fetch all medical records from database (excluding genesis block)
         const query = `
             SELECT 
@@ -386,16 +409,17 @@ export async function recommendRecordsGA(searchCriteria, limit = 10) {
             FROM blockchain_metadata bm
             LEFT JOIN patients p ON bm.patient_id = p.patient_id
             LEFT JOIN doctors d ON bm.doc = d.doctor_id
-            WHERE bm.block_index IS NOT NULL 
-              AND bm.block_index > 0
-              AND bm.patient_id IS NOT NULL
+            ${whereClause}
             ORDER BY bm.timestamp DESC
         `;
         
-        const result = await pool.query(query);
+        const result = queryParams.length > 0 
+            ? await pool.query(query, queryParams)
+            : await pool.query(query);
         let population = result.rows;
         
-        console.log(`GA: Fetched ${population.length} records from database`);
+        console.log(`GA: Fetched ${population.length} records from database` + 
+                   (searchCriteria.doctor_access_filter ? ` (filtered for doctor ${searchCriteria.doctor_access_filter})` : ''));
         
         if (population.length === 0) {
             return {

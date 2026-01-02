@@ -265,6 +265,9 @@
             <button class="tab-btn" onclick="switchTab('consented')">
                 <i class="bi bi-eye-fill me-2"></i>View Granted Records
             </button>
+            <button class="tab-btn" onclick="switchTab('ga-search')">
+                <i class="bi bi-search me-2"></i>Find Similar Records
+            </button>
         </div>
         
         <!-- Tab: Upload Record -->
@@ -687,6 +690,285 @@
                     <i class="bi bi-inbox"></i>
                     <h5>Select a patient to view their shared records</h5>
                 </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tab: Find Similar Records (GA Search) -->
+    <div id="ga-search-tab" class="tab-content">
+        <div class="content-card">
+            <div class="mb-4">
+                <h3><i class="bi bi-search me-2"></i>Find Similar Medical Records</h3>
+                <div class="alert alert-info mt-3" style="background: rgba(0, 210, 255, 0.1); border: 1px solid rgba(0, 210, 255, 0.3); border-radius: 12px; color: #00d2ff;">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>How it works:</strong> This system uses a Genetic Algorithm (GA) to intelligently find the most relevant medical records based on your search criteria. 
+                    The GA scores record relevance based on file type matching, patient conditions similarity, blood group, gender, and temporal patterns (recent records ranked higher).
+                    <br><strong>Note:</strong> This searches only records you've uploaded or have been granted access to via consent. Genesis block (block 0) is automatically excluded from searches.
+                </div>
+            </div>
+
+            <!-- Search Form -->
+            <form id="gaSearchForm" onsubmit="performGASearch(event)">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="bi bi-file-earmark-medical me-2"></i>File Type
+                            </label>
+                            <select class="form-select" id="ga_file_type">
+                                <option value="">All File Types</option>
+                                <option value="Blood Test">Blood Test</option>
+                                <option value="X-Ray">X-Ray</option>
+                                <option value="MRI Scan">MRI Scan</option>
+                                <option value="CT Scan">CT Scan</option>
+                                <option value="Prescription">Prescription</option>
+                                <option value="Lab Report">Lab Report</option>
+                                <option value="Medical Certificate">Medical Certificate</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <small class="text-muted">Optional: Select specific file type for exact matching</small>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="bi bi-person me-2"></i>Patient
+                            </label>
+                            <select class="form-select" id="ga_patient_id">
+                                <option value="">All Patients</option>
+                                <% if (patients && patients.length > 0) { %>
+                                    <% patients.forEach(patient => { %>
+                                        <option value="<%= patient.patient_id %>">
+                                            <%= patient.patient_id %> - <%= patient.username || 'Unnamed' %>
+                                        </option>
+                                    <% }); %>
+                                <% } %>
+                            </select>
+                            <small class="text-muted">Optional: Filter by specific patient</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Primary Medical Criteria (Highest Priority) -->
+                <div class="alert alert-success mt-3" style="background: rgba(40, 167, 69, 0.25); border: 1px solid rgba(40, 167, 69, 0.5); color: #4cff4c;">
+                    <strong><i class="bi bi-star-fill me-2"></i>High Priority Fields</strong> (More weight in search)
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="bi bi-clipboard-pulse me-2"></i>Primary Diagnosis
+                            </label>
+                            <input type="text" class="form-control" id="ga_primary_diagnosis" 
+                                   placeholder="e.g., Pneumonia, Diabetes Type 2">
+                            <small class="text-muted"><strong>Weight: Very High</strong> - Main medical condition</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="bi bi-thermometer-half me-2"></i>Symptoms
+                            </label>
+                            <div id="ga_symptoms_container">
+                                <div class="input-group mb-2">
+                                    <input type="text" class="form-control ga-symptom-field" 
+                                           placeholder="e.g., fever, headache, cough">
+                                    <button type="button" class="btn btn-outline-danger" onclick="removeGAField(this)" style="display:none;">
+                                        <i class="bi bi-dash-circle"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="addGASymptom()">
+                                <i class="bi bi-plus-circle me-1"></i>Add More Symptoms
+                            </button>
+                            <div><small class="text-muted"><strong>Weight: Very High</strong></small></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="bi bi-heart-pulse me-2"></i>Affected Body Parts / Organs
+                            </label>
+                            <input type="text" class="form-control" id="ga_body_parts" 
+                                   placeholder="e.g., lungs, chest, heart">
+                            <small class="text-muted"><strong>Weight: High</strong></small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="bi bi-capsule me-2"></i>Medications
+                            </label>
+                            <div id="ga_medications_container">
+                                <div class="input-group mb-2">
+                                    <input type="text" class="form-control ga-medication-field" 
+                                           placeholder="e.g., Amoxicillin 500mg">
+                                    <button type="button" class="btn btn-outline-danger" onclick="removeGAField(this)" style="display:none;">
+                                        <i class="bi bi-dash-circle"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="addGAMedication()">
+                                <i class="bi bi-plus-circle me-1"></i>Add More Medications
+                            </button>
+                            <div><small class="text-muted"><strong>Weight: Medium-High</strong></small></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Medium Priority Fields -->
+                <div class="alert alert-warning mt-3" style="background: rgba(255, 193, 7, 0.25); border: 1px solid rgba(255, 193, 7, 0.5); color: #ffd966;">
+                    <strong><i class="bi bi-star-half me-2"></i>Medium Priority Fields</strong>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="bi bi-prescription2 me-2"></i>Treatments Given
+                            </label>
+                            <div id="ga_treatments_container">
+                                <div class="input-group mb-2">
+                                    <input type="text" class="form-control ga-treatment-field" 
+                                           placeholder="e.g., Oxygen therapy, Physical therapy">
+                                    <button type="button" class="btn btn-outline-danger" onclick="removeGAField(this)" style="display:none;">
+                                        <i class="bi bi-dash-circle"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="addGATreatment()">
+                                <i class="bi bi-plus-circle me-1"></i>Add More Treatments
+                            </button>
+                            <div><small class="text-muted"><strong>Weight: Medium</strong></small></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="bi bi-clipboard-check me-2"></i>Secondary Diagnoses
+                            </label>
+                            <div id="ga_secondary_diagnosis_container">
+                                <div class="input-group mb-2">
+                                    <input type="text" class="form-control ga-secondary-diagnosis-field" 
+                                           placeholder="e.g., Hypertension, Asthma">
+                                    <button type="button" class="btn btn-outline-danger" onclick="removeGAField(this)" style="display:none;">
+                                        <i class="bi bi-dash-circle"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="addGASecondaryDiagnosis()">
+                                <i class="bi bi-plus-circle me-1"></i>Add More
+                            </button>
+                            <div><small class="text-muted"><strong>Weight: Medium</strong></small></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="bi bi-journal-medical me-2"></i>General Medical Conditions / Notes
+                            </label>
+                            <textarea class="form-control" id="ga_conditions" rows="2" 
+                                      placeholder="e.g., chronic conditions, additional medical history"></textarea>
+                            <small class="text-muted"><strong>Weight: Medium</strong> - Free text for any additional context</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Demographic & Administrative Filters -->
+                <div class="alert alert-info mt-3" style="background: rgba(13, 202, 240, 0.25); border: 1px solid rgba(13, 202, 240, 0.5); color: #4dd4ff;">
+                    <strong><i class="bi bi-funnel me-2"></i>Demographic & Administrative Filters</strong>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="bi bi-droplet me-2"></i>Blood Group
+                            </label>
+                            <select class="form-select" id="ga_blood_group">
+                                <option value="">All Blood Groups</option>
+                                <option value="A+">A+</option>
+                                <option value="A-">A-</option>
+                                <option value="B+">B+</option>
+                                <option value="B-">B-</option>
+                                <option value="AB+">AB+</option>
+                                <option value="AB-">AB-</option>
+                                <option value="O+">O+</option>
+                                <option value="O-">O-</option>
+                            </select>
+                            <small class="text-muted">Patient's blood group</small>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="bi bi-gender-ambiguous me-2"></i>Gender
+                            </label>
+                            <select class="form-select" id="ga_gender">
+                                <option value="">Any Gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <small class="text-muted">Patient's gender</small>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="bi bi-calendar-range me-2"></i>Age Range
+                            </label>
+                            <select class="form-select" id="ga_age_range">
+                                <option value="">Any Age</option>
+                                <option value="0-12">Pediatric (0-12)</option>
+                                <option value="13-19">Adolescent (13-19)</option>
+                                <option value="20-39">Young Adult (20-39)</option>
+                                <option value="40-59">Middle Age (40-59)</option>
+                                <option value="60-150">Senior (60+)</option>
+                            </select>
+                            <small class="text-muted">Patient's age group</small>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="bi bi-list-ol me-2"></i>Number of Results
+                            </label>
+                            <input type="number" class="form-control" id="ga_limit" 
+                                   value="10" min="1" max="50">
+                            <small class="text-muted">Maximum results to return (1-50)</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-3 mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg" id="gaSearchBtn">
+                        <i class="bi bi-search me-2"></i>Search with GA
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-lg" onclick="clearGASearch()">
+                        <i class="bi bi-x-circle me-2"></i>Clear
+                    </button>
+                </div>
+            </form>
+
+            <!-- Results Section -->
+            <div id="gaResults" style="display: none; margin-top: 40px;">
+                <h4 class="mb-4">
+                    <i class="bi bi-list-check me-2"></i>Search Results
+                    <span id="gaResultCount" class="badge bg-primary ms-2">0</span>
+                </h4>
+                <div id="gaResultsContent"></div>
             </div>
         </div>
     </div>
@@ -1351,6 +1633,310 @@
             } catch (error) {
                 container.innerHTML = '<div class="alert alert-danger">Error loading records</div>';
             }
+        }
+
+        // GA Search Functions
+        function addGASymptom() {
+            const container = document.getElementById('ga_symptoms_container');
+            const inputGroup = document.createElement('div');
+            inputGroup.className = 'input-group mb-2';
+            inputGroup.innerHTML = `
+                <input type="text" class="form-control ga-symptom-field" placeholder="e.g., fever, headache">
+                <button type="button" class="btn btn-outline-danger" onclick="removeGAField(this)">
+                    <i class="bi bi-dash-circle"></i>
+                </button>
+            `;
+            container.appendChild(inputGroup);
+            updateRemoveButtons('ga-symptom-field');
+        }
+
+        function addGAMedication() {
+            const container = document.getElementById('ga_medications_container');
+            const inputGroup = document.createElement('div');
+            inputGroup.className = 'input-group mb-2';
+            inputGroup.innerHTML = `
+                <input type="text" class="form-control ga-medication-field" placeholder="e.g., Amoxicillin 500mg">
+                <button type="button" class="btn btn-outline-danger" onclick="removeGAField(this)">
+                    <i class="bi bi-dash-circle"></i>
+                </button>
+            `;
+            container.appendChild(inputGroup);
+            updateRemoveButtons('ga-medication-field');
+        }
+
+        function addGATreatment() {
+            const container = document.getElementById('ga_treatments_container');
+            const inputGroup = document.createElement('div');
+            inputGroup.className = 'input-group mb-2';
+            inputGroup.innerHTML = `
+                <input type="text" class="form-control ga-treatment-field" placeholder="e.g., Oxygen therapy, Physical therapy">
+                <button type="button" class="btn btn-outline-danger" onclick="removeGAField(this)">
+                    <i class="bi bi-dash-circle"></i>
+                </button>
+            `;
+            container.appendChild(inputGroup);
+            updateRemoveButtons('ga-treatment-field');
+        }
+
+        function addGASecondaryDiagnosis() {
+            const container = document.getElementById('ga_secondary_diagnosis_container');
+            const inputGroup = document.createElement('div');
+            inputGroup.className = 'input-group mb-2';
+            inputGroup.innerHTML = `
+                <input type="text" class="form-control ga-secondary-diagnosis-field" placeholder="e.g., Hypertension, Asthma">
+                <button type="button" class="btn btn-outline-danger" onclick="removeGAField(this)">
+                    <i class="bi bi-dash-circle"></i>
+                </button>
+            `;
+            container.appendChild(inputGroup);
+            updateRemoveButtons('ga-secondary-diagnosis-field');
+        }
+
+        function removeGAField(button) {
+            const inputGroup = button.parentElement;
+            const input = inputGroup.querySelector('input');
+            const fieldClass = input.className.match(/ga-\w+-field/)[0];
+            inputGroup.remove();
+            updateRemoveButtons(fieldClass);
+        }
+
+        function updateRemoveButtons(fieldClass) {
+            const fields = document.querySelectorAll(`.${fieldClass}`);
+            const buttons = Array.from(fields).map(field => field.parentElement.querySelector('.btn-outline-danger'));
+            buttons.forEach((btn, index) => {
+                btn.style.display = fields.length > 1 ? 'block' : 'none';
+            });
+        }
+
+        function collectFieldValues(className) {
+            const inputs = document.querySelectorAll(`.${className}`);
+            const values = Array.from(inputs)
+                .map(input => input.value.trim())
+                .filter(value => value.length > 0);
+            return values.length > 0 ? values.join(', ') : '';
+        }
+
+        async function performGASearch(event) {
+            event.preventDefault();
+            
+            const searchBtn = document.getElementById('gaSearchBtn');
+            const resultsDiv = document.getElementById('gaResults');
+            const resultsContent = document.getElementById('gaResultsContent');
+            const resultCount = document.getElementById('gaResultCount');
+
+            searchBtn.disabled = true;
+            searchBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Searching...';
+            resultsContent.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-3">Analyzing records...</p></div>';
+            resultsDiv.style.display = 'block';
+
+            try {
+                const searchCriteria = {
+                    file_type: document.getElementById('ga_file_type').value,
+                    patient_id: document.getElementById('ga_patient_id').value,
+                    primary_diagnosis: document.getElementById('ga_primary_diagnosis').value.trim(),
+                    symptoms: collectFieldValues('ga-symptom-field'),
+                    affected_body_parts: document.getElementById('ga_body_parts').value.trim(),
+                    medications: collectFieldValues('ga-medication-field'),
+                    treatments: collectFieldValues('ga-treatment-field'),
+                    secondary_diagnoses: collectFieldValues('ga-secondary-diagnosis-field'),
+                    current_conditions: document.getElementById('ga_conditions').value.trim(),
+                    blood_group: document.getElementById('ga_blood_group').value,
+                    gender: document.getElementById('ga_gender').value,
+                    age_range: document.getElementById('ga_age_range').value,
+                    limit: parseInt(document.getElementById('ga_limit').value) || 10
+                };
+
+                // Check if at least one criterion is provided
+                const hasAnyCriteria = Object.values(searchCriteria).some(val => 
+                    val !== '' && val !== null && val !== undefined && val !== 'All Patients'
+                );
+
+                if (!hasAnyCriteria) {
+                    resultsContent.innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            Please provide at least one search criterion.
+                        </div>
+                    `;
+                    searchBtn.disabled = false;
+                    searchBtn.innerHTML = '<i class="bi bi-search me-2"></i>Search with GA';
+                    return;
+                }
+
+                console.log('Sending GA search with criteria:', searchCriteria);
+
+                const response = await fetch('/api/ga/recommend', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(searchCriteria)
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.recommendations && data.recommendations.length > 0) {
+                    resultCount.textContent = data.recommendations.length;
+                    
+                    let html = `
+                        <div class="alert alert-success mb-4" style="background: rgba(0, 255, 127, 0.1); border: 1px solid rgba(0, 255, 127, 0.3);">
+                            <i class="bi bi-check-circle me-2"></i>
+                            <strong>GA Search Complete!</strong> Found ${data.recommendations.length} relevant records from ${data.totalRecordsAnalyzed} total records.
+                            <br><small>Processed through ${data.config.generations} generations with population size of ${data.config.populationSize}</small>
+                        </div>
+                        
+                        <div class="row">
+                    `;
+                    
+                    data.recommendations.forEach((record, index) => {
+                        const percentage = (record.matchPercentage || 0).toFixed(1);
+                        const matchColor = percentage >= 80 ? '#00ff7f' : 
+                                         percentage >= 60 ? '#00d2ff' : 
+                                         percentage >= 40 ? '#ffd700' : '#ff6b6b';
+                        
+                        html += `
+                            <div class="col-md-6 mb-3">
+                                <div class="card" style="background: rgba(30,41,59,0.8); border: 2px solid ${matchColor}; border-radius: 15px; padding: 20px; color: white;">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <h5 style="color: ${matchColor};">
+                                            <i class="bi bi-file-earmark-medical me-2"></i>
+                                            Record #${index + 1}
+                                        </h5>
+                                        <span class="badge" style="background: ${matchColor}; color: #000; font-size: 1.2rem; padding: 8px 15px;">
+                                            ${percentage}% Match
+                                        </span>
+                                    </div>
+                                    
+                                    <div class="record-details">
+                                        <div class="mb-2">
+                                            <i class="bi bi-fingerprint me-2"></i>
+                                            <strong>Block Index:</strong> ${record.block_index}
+                                        </div>
+                                        <div class="mb-2">
+                                            <i class="bi bi-person me-2"></i>
+                                            <strong>Patient:</strong> ${record.patient_username || 'N/A'} (ID: ${record.patient_id})
+                                        </div>
+                                        <div class="mb-2">
+                                            <i class="bi bi-file-text me-2"></i>
+                                            <strong>File Type:</strong> ${record.file_type || 'N/A'}
+                                        </div>
+                                        ${record.primary_diagnosis ? `
+                                        <div class="mb-2">
+                                            <i class="bi bi-clipboard-pulse me-2"></i>
+                                            <strong>Diagnosis:</strong> ${record.primary_diagnosis}
+                                        </div>
+                                        ` : ''}
+                                        ${record.symptoms ? `
+                                        <div class="mb-2">
+                                            <i class="bi bi-thermometer-half me-2"></i>
+                                            <strong>Symptoms:</strong> ${record.symptoms}
+                                        </div>
+                                        ` : ''}
+                                        ${record.medications ? `
+                                        <div class="mb-2">
+                                            <i class="bi bi-capsule me-2"></i>
+                                            <strong>Medications:</strong> ${record.medications}
+                                        </div>
+                                        ` : ''}
+                                        ${record.current_conditions ? `
+                                        <div class="mb-2">
+                                            <i class="bi bi-heart-pulse me-2"></i>
+                                            <strong>Conditions:</strong> ${record.current_conditions}
+                                        </div>
+                                        ` : ''}
+                                        ${record.gender ? `
+                                        <div class="mb-2">
+                                            <i class="bi bi-gender-ambiguous me-2"></i>
+                                            <strong>Gender:</strong> ${record.gender}
+                                        </div>
+                                        ` : ''}
+                                        ${record.blood_group ? `
+                                        <div class="mb-2">
+                                            <i class="bi bi-droplet me-2"></i>
+                                            <strong>Blood Group:</strong> ${record.blood_group}
+                                        </div>
+                                        ` : ''}
+                                        <div class="mb-2">
+                                            <i class="bi bi-clock me-2"></i>
+                                            <strong>Date:</strong> ${new Date(record.timestamp).toLocaleString()}
+                                        </div>
+                                        <div class="mb-2">
+                                            <i class="bi bi-link-45deg me-2"></i>
+                                            <strong>IPFS CID:</strong> 
+                                            <code style="font-size: 0.75rem; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;">
+                                                ${record.ipfs_cid ? record.ipfs_cid.substring(0, 30) + '...' : 'N/A'}
+                                            </code>
+                                        </div>
+                                        
+                                        <hr style="border-color: rgba(255,255,255,0.2); margin: 15px 0;">
+                                        
+                                        <div class="fitness-details" style="font-size: 0.85rem; color: rgba(255,255,255,0.7);">
+                                            <div><strong>Fitness Score:</strong> ${record.fitnessScore}</div>
+                                            <div><strong>Raw Score:</strong> ${record.rawScore} / ${record.maxScore}</div>
+                                        </div>
+                                        
+                                        <div class="mt-3">
+                                            ${record.ipfs_cid ? `<button class="btn btn-sm btn-primary w-100" onclick="viewRecord('${record.ipfs_cid}')">
+                                                <i class="bi bi-eye me-2"></i>View Full Record
+                                            </button>` : '<span class="badge bg-secondary w-100">No Data</span>'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    html += '</div>';
+                    resultsContent.innerHTML = html;
+                    
+                    // Scroll to results
+                    resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                    resultsContent.innerHTML = `
+                        <div class="alert alert-warning" style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.3);">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            No matching records found. Try adjusting your search criteria.
+                        </div>
+                        ${data.totalRecordsAnalyzed ? `
+                        <div class="mt-3">
+                            <strong>Search analyzed:</strong> ${data.totalRecordsAnalyzed} total records<br>
+                            <strong>Generations:</strong> ${data.config.generations}<br>
+                            <strong>Population size:</strong> ${data.config.populationSize}
+                        </div>
+                        ` : ''}
+                    `;
+                }
+            } catch (error) {
+                console.error('GA search error:', error);
+                resultsContent.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Search failed: ${error.message}
+                    </div>
+                `;
+            } finally {
+                searchBtn.disabled = false;
+                searchBtn.innerHTML = '<i class="bi bi-search me-2"></i>Search with GA';
+            }
+        }
+
+        function clearGASearch() {
+            document.getElementById('gaSearchForm').reset();
+            document.getElementById('gaResults').style.display = 'none';
+            
+            // Reset multi-field containers
+            ['ga_symptoms_container', 'ga_medications_container', 'ga_treatments_container', 'ga_secondary_diagnosis_container'].forEach(containerId => {
+                const container = document.getElementById(containerId);
+                const firstInput = container.querySelector('input');
+                if (firstInput) {
+                    firstInput.value = '';
+                }
+                const extraGroups = container.querySelectorAll('.input-group:not(:first-child)');
+                extraGroups.forEach(group => group.remove());
+            });
+            
+            updateRemoveButtons('ga-symptom-field');
+            updateRemoveButtons('ga-medication-field');
+            updateRemoveButtons('ga-treatment-field');
+            updateRemoveButtons('ga-secondary-diagnosis-field');
         }
     </script>
 </body>

@@ -22,11 +22,11 @@ router.post('/recommend', async (req, res) => {
             });
         }
         
-        // Only admin can access GA recommendations for now
-        if (req.session.user.role !== 'admin') {
+        // Allow both admin and doctor access
+        if (req.session.user.role !== 'admin' && req.session.user.role !== 'doctor') {
             return res.status(403).json({
                 success: false,
-                error: 'Admin access required'
+                error: 'Admin or doctor access required'
             });
         }
         
@@ -47,6 +47,11 @@ router.post('/recommend', async (req, res) => {
             gender: req.body.gender || '',
             age_range: req.body.age_range || ''
         };
+        
+        // Add doctor access filter if user is a doctor
+        if (req.session.user.role === 'doctor') {
+            searchCriteria.doctor_access_filter = req.session.user.doctor_id;
+        }
         
         const limit = parseInt(req.body.limit) || 10;
         
