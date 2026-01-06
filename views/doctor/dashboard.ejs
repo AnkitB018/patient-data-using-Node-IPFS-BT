@@ -699,12 +699,6 @@
         <div class="content-card">
             <div class="mb-4">
                 <h3><i class="bi bi-search me-2"></i>Find Similar Medical Records</h3>
-                <div class="alert alert-info mt-3" style="background: rgba(0, 210, 255, 0.1); border: 1px solid rgba(0, 210, 255, 0.3); border-radius: 12px; color: #00d2ff;">
-                    <i class="bi bi-info-circle me-2"></i>
-                    <strong>How it works:</strong> This system uses a Genetic Algorithm (GA) to intelligently find the most relevant medical records based on your search criteria. 
-                    The GA scores record relevance based on file type matching, patient conditions similarity, blood group, gender, and temporal patterns (recent records ranked higher).
-                    <br><strong>Note:</strong> This searches only records you've uploaded or have been granted access to via consent. Genesis block (block 0) is automatically excluded from searches.
-                </div>
             </div>
 
             <!-- Search Form -->
@@ -750,12 +744,8 @@
                     </div>
                 </div>
 
-                <!-- Primary Medical Criteria (Highest Priority) -->
-                <div class="alert alert-success mt-3" style="background: rgba(40, 167, 69, 0.25); border: 1px solid rgba(40, 167, 69, 0.5); color: #4cff4c;">
-                    <strong><i class="bi bi-star-fill me-2"></i>High Priority Fields</strong> (More weight in search)
-                </div>
-                
-                <div class="row">
+                <!-- Primary Medical Criteria -->
+                <div class="row mt-3">
                     <div class="col-md-6">
                         <div class="form-group">
                             <label class="form-label">
@@ -821,12 +811,8 @@
                     </div>
                 </div>
 
-                <!-- Medium Priority Fields -->
-                <div class="alert alert-warning mt-3" style="background: rgba(255, 193, 7, 0.25); border: 1px solid rgba(255, 193, 7, 0.5); color: #ffd966;">
-                    <strong><i class="bi bi-star-half me-2"></i>Medium Priority Fields</strong>
-                </div>
-
-                <div class="row">
+                <!-- Additional Fields -->
+                <div class="row mt-3">
                     <div class="col-md-6">
                         <div class="form-group">
                             <label class="form-label">
@@ -1777,10 +1763,11 @@
                     resultCount.textContent = data.recommendations.length;
                     
                     let html = `
-                        <div class="alert alert-success mb-4" style="background: rgba(0, 255, 127, 0.1); border: 1px solid rgba(0, 255, 127, 0.3);">
+                        <div class="alert alert-success mb-4" style="background: rgba(0, 255, 127, 0.25); border: 2px solid rgba(0, 255, 127, 0.6); color: #00ff7f; font-weight: 500;">
                             <i class="bi bi-check-circle me-2"></i>
-                            <strong>GA Search Complete!</strong> Found ${data.recommendations.length} relevant records from ${data.totalRecordsAnalyzed} total records.
-                            <br><small>Processed through ${data.config.generations} generations with population size of ${data.config.populationSize}</small>
+                            <strong>Search Complete!</strong> Found ${data.recommendations.length} relevant records.
+                            ${data.isPersonalized ? '<br><small><i class="bi bi-stars me-1"></i>Using your personalized search preferences</small>' : ''}
+                            ${data.samplingEnabled && data.totalEvaluations ? `<br><small>⚡ Smart sampling: ${data.totalEvaluations} evaluations across ${data.generationsRun} generations (${data.totalRecordsAnalyzed} unique records)</small>` : ''}
                         </div>
                         
                         <div class="row">

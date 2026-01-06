@@ -7,7 +7,7 @@ import express from 'express';
 import crypto from 'crypto';
 import { getAllPatients, getUserByUsername, updatePatient, getAllBlocks, getPatientBlocks as getPatientBlocksDB, addBlock, getBlockchainStats, getAllDoctors, assignDoctorToPatient, removeDoctorPatientRelation, getAllDoctorPatientRelations } from '../utils/dbHelper.js';
 import { uploadMetadataToIPFS, fetchFromIPFS, checkIPFSConnection } from '../utils/ipfsHelper.js';
-import { addBlockToChain, getBlockchain } from '../utils/blockchainHelper.js';
+import { addBlockToChain } from '../utils/blockchainHelper.js';
 
 const router = express.Router();
 
@@ -35,11 +35,25 @@ router.use(requireAdmin);
 
 router.get('/dashboard', async (req, res) => {
     try {
-        const patients = await getAllPatients();
-        const doctors = await getAllDoctors();
-        const stats = await getBlockchainStats();
-        const ipfsConnected = await checkIPFSConnection();
+        console.log('📊 Loading dashboard...');
         
+        console.log('  → Fetching patients...');
+        const patients = await getAllPatients();
+        console.log(`  ✓ Got ${patients.length} patients`);
+        
+        console.log('  → Fetching doctors...');
+        const doctors = await getAllDoctors();
+        console.log(`  ✓ Got ${doctors.length} doctors`);
+        
+        console.log('  → Fetching blockchain stats...');
+        const stats = await getBlockchainStats();
+        console.log(`  ✓ Got stats:`, stats);
+        
+        console.log('  → Checking IPFS...');
+        const ipfsConnected = await checkIPFSConnection();
+        console.log(`  ✓ IPFS connected: ${ipfsConnected}`);
+        
+        console.log('  → Rendering dashboard...');
         res.render('admin/dashboard', {
             title: 'Admin Dashboard',
             user: req.session.user,
@@ -48,8 +62,9 @@ router.get('/dashboard', async (req, res) => {
             stats: stats,
             ipfsConnected: ipfsConnected
         });
+        console.log('  ✓ Dashboard rendered successfully');
     } catch (error) {
-        console.error('Dashboard error:', error);
+        console.error('❌ Dashboard error:', error);
         res.render('admin/dashboard', {
             title: 'Admin Dashboard',
             user: req.session.user,

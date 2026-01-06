@@ -4,7 +4,15 @@
  */
 
 import express from 'express';
-import { recommendRecordsGA, getGAStatistics } from '../utils/gaHelper.js';
+import { 
+    recommendRecordsGA, 
+    recommendRecordsGAAdaptive,
+    getGAStatistics,
+    evolveWeightsForUser,
+    getUserFeedback,
+    loadWeightProfile
+} from '../utils/gaHelper.js';
+import pool from '../utils/dbHelper.js';
 
 const router = express.Router();
 
@@ -54,11 +62,20 @@ router.post('/recommend', async (req, res) => {
         }
         
         const limit = parseInt(req.body.limit) || 10;
+        const useAdaptive = req.body.useAdaptive !== false; // Default to true
         
         console.log('GA Search Request:', searchCriteria);
+        console.log('Use Adaptive:', useAdaptive);
         
-        // Run GA recommendation
-        const result = await recommendRecordsGA(searchCriteria, limit);
+        // Run GA recommendation (adaptive or classic)
+        let result;
+        if (useAdaptive) {
+            const userId = req.session.user.role === 'admin' ? 'admin' : req.session.user.doctor_id;
+            const userRole = req.session.user.role;
+            result = await recommendRecordsGAAdaptive(searchCriteria, limit, userId, userRole, true);
+        } else {
+            result = await recommendRecordsGA(searchCriteria, limit);
+        }
         
         return res.json(result);
         
@@ -94,6 +111,159 @@ router.get('/statistics', async (req, res) => {
         return res.status(500).json({
             success: false,
             error: 'Failed to get statistics',
+            details: error.message
+        });
+    }
+});
+
+/**
+ * POST /api/ga/feedback
+ * Record user feedback on search results
+ */
+router.post('/feedback', async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({
+                success: false,
+                error: 'Authentication required'
+            });
+        }
+        
+        const { blockIndex, wasUseful, searchCriteria, matchPercentage } = req.body;
+        
+        const userId = req.session.user.role === 'admin' ? 'admin' : req.session.user.doctor_id;
+        const userRole = req.session.user.role;
+        
+        await pool.query(`
+            INSERT INTO ga_search_feedback 
+            (user_id, user_role, record_block_index, was_useful, search_criteria, match_percentage)
+            VALUES ($1, $2, $3, $4, $5, $6)
+        `, [userId, userRole, blockIndex, wasUseful, JSON.stringify(searchCriteria || {}), matchPercentage || null]);
+        
+        console.log(`📝 Feedback recorded: ${userRole} ${userId} - Block ${blockIndex} - ${wasUseful ? '✅ Useful' : '❌ Not useful'}`);
+        
+        // Clean up old feedback - keep only last 50 items per user
+        await pool.query(`
+            DELETE FROM ga_search_feedback
+            WHERE id IN (
+                SELECT id FROM ga_search_feedback
+                WHERE user_id = $1 AND user_role = $2
+                ORDER BY timestamp DESC
+                OFFSET 50
+            )
+        `, [userId, userRole]);
+        
+        // Check if we should trigger weight evolution
+        const feedbackCount = await pool.query(
+            'SELECT COUNT(*) as count FROM ga_search_feedback WHERE user_id = $1 AND user_role = $2',
+            [userId, userRole]
+        );
+        
+        const count = parseInt(feedbackCount.rows[0].count);
+        let shouldEvolve = false;
+        
+        // Evolve after 10, 25, 50, 100, etc. feedback items
+        if (count === 10 || count === 25 || count === 50 || (count >= 100 && count % 50 === 0)) {
+            shouldEvolve = true;
+        }
+        
+        return res.json({
+            success: true,
+            message: 'Feedback recorded',
+            totalFeedback: count,
+            willEvolveWeights: shouldEvolve
+        });
+        
+    } catch (error) {
+        console.error('Feedback Route Error:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to record feedback',
+            details: error.message
+        });
+    }
+});
+
+/**
+ * POST /api/ga/evolve-weights
+ * Manually trigger weight evolution for current user
+ */
+router.post('/evolve-weights', async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({
+                success: false,
+                error: 'Authentication required'
+            });
+        }
+        
+        const userId = req.session.user.role === 'admin' ? 'admin' : req.session.user.doctor_id;
+        const userRole = req.session.user.role;
+        
+        console.log(`🧬 Manual weight evolution triggered for ${userRole} ${userId}`);
+        
+        const weights = await evolveWeightsForUser(userId, userRole);
+        
+        if (!weights) {
+            return res.json({
+                success: false,
+                message: 'Not enough feedback data to evolve weights (minimum 10 required)'
+            });
+        }
+        
+        return res.json({
+            success: true,
+            message: 'Weights evolved successfully',
+            weights
+        });
+        
+    } catch (error) {
+        console.error('Evolve Weights Route Error:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to evolve weights',
+            details: error.message
+        });
+    }
+});
+
+/**
+ * GET /api/ga/profile
+ * Get user's weight profile and feedback stats
+ */
+router.get('/profile', async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({
+                success: false,
+                error: 'Authentication required'
+            });
+        }
+        
+        const userId = req.session.user.role === 'admin' ? 'admin' : req.session.user.doctor_id;
+        const userRole = req.session.user.role;
+        
+        const weights = await loadWeightProfile(userId, userRole);
+        const feedback = await getUserFeedback(userId, userRole);
+        
+        const profileResult = await pool.query(
+            'SELECT * FROM ga_weight_profiles WHERE user_id = $1 AND user_role = $2',
+            [userId, userRole]
+        );
+        
+        return res.json({
+            success: true,
+            hasProfile: weights !== null,
+            profile: profileResult.rows[0] || null,
+            feedbackCount: feedback.length,
+            recentFeedback: feedback.slice(0, 10)
+        });
+        
+    } catch (error) {
+        console.error('Profile Route Error:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to get profile',
             details: error.message
         });
     }

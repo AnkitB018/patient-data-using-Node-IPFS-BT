@@ -15,7 +15,8 @@ const pool = new Pool({
     database: 'Medical_project',
     max: 20,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
+    connectionTimeoutMillis: 5000,
+    query_timeout: 10000,  // 10 second query timeout
 });
 
 // Test connection

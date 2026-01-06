@@ -22,10 +22,13 @@ async function addBlockToChain(data) {
     }
 }
 
+// Unused functions - kept for potential future use
+/*
 /**
  * Get the entire blockchain
  * @returns {Promise<Array>} Array of blocks
  */
+/*
 async function getBlockchain() {
     try {
         const response = await axios.get(`${BLOCKCHAIN_API}/api/blockchain`);
@@ -41,6 +44,7 @@ async function getBlockchain() {
  * @param {string} patientId - Patient ID
  * @returns {Promise<Array>} Array of blocks
  */
+/*
 async function getPatientBlocks(patientId) {
     try {
         const response = await axios.get(`${BLOCKCHAIN_API}/api/blockchain/patient/${patientId}`);
@@ -55,6 +59,7 @@ async function getPatientBlocks(patientId) {
  * Validate blockchain integrity
  * @returns {Promise<Object>} Validation result
  */
+/*
 async function validateBlockchain() {
     try {
         const response = await axios.get(`${BLOCKCHAIN_API}/api/blockchain/validate`);
@@ -69,6 +74,7 @@ async function validateBlockchain() {
  * Get blockchain statistics
  * @returns {Promise<Object>} Stats object
  */
+/*
 async function getBlockchainStats() {
     try {
         const response = await axios.get(`${BLOCKCHAIN_API}/api/blockchain/stats`);
@@ -83,6 +89,7 @@ async function getBlockchainStats() {
  * Check if blockchain API is healthy
  * @returns {Promise<boolean>} True if API is running
  */
+/*
 async function checkBlockchainHealth() {
     try {
         const response = await axios.get(`${BLOCKCHAIN_API}/api/health`);
@@ -91,12 +98,8 @@ async function checkBlockchainHealth() {
         return false;
     }
 }
+*/
 
 export {
-    addBlockToChain,
-    getBlockchain,
-    getPatientBlocks,
-    validateBlockchain,
-    getBlockchainStats,
-    checkBlockchainHealth
+    addBlockToChain
 };
