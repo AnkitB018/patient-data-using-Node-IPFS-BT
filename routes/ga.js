@@ -12,6 +12,7 @@ import {
     getUserFeedback,
     loadWeightProfile
 } from '../utils/gaHelper.js';
+import { generateStatisticalSummary, generateClinicalInsights } from '../utils/analyticsHelper.js';
 import pool from '../utils/dbHelper.js';
 
 const router = express.Router();
@@ -56,8 +57,10 @@ router.post('/recommend', async (req, res) => {
             age_range: req.body.age_range || ''
         };
         
-        // Add doctor access filter if user is a doctor
-        if (req.session.user.role === 'doctor') {
+        // Add doctor access filter if user is a doctor AND not in analytics mode
+        const analyticsMode = req.body.analyticsMode === true;
+        
+        if (req.session.user.role === 'doctor' && !analyticsMode) {
             searchCriteria.doctor_access_filter = req.session.user.doctor_id;
         }
         
@@ -66,17 +69,51 @@ router.post('/recommend', async (req, res) => {
         
         console.log('GA Search Request:', searchCriteria);
         console.log('Use Adaptive:', useAdaptive);
+        console.log('Analytics Mode:', analyticsMode);
         
         // Run GA recommendation (adaptive or classic)
         let result;
         if (useAdaptive) {
             const userId = req.session.user.role === 'admin' ? 'admin' : req.session.user.doctor_id;
             const userRole = req.session.user.role;
-            result = await recommendRecordsGAAdaptive(searchCriteria, limit, userId, userRole, true);
+            // For analytics mode, fetch more records for better statistics (50 instead of 10)
+            const fetchLimit = analyticsMode ? 50 : limit;
+            result = await recommendRecordsGAAdaptive(searchCriteria, fetchLimit, userId, userRole, true);
         } else {
-            result = await recommendRecordsGA(searchCriteria, limit);
+            const fetchLimit = analyticsMode ? 50 : limit;
+            result = await recommendRecordsGA(searchCriteria, fetchLimit);
         }
         
+        // If analytics mode, generate statistical summary instead of returning records
+        if (analyticsMode) {
+            if (result.success && result.recommendations && result.recommendations.length > 0) {
+                const summary = generateStatisticalSummary(result.recommendations);
+                const insights = generateClinicalInsights(summary);
+                
+                return res.json({
+                    success: true,
+                    mode: 'analytics',
+                    summary: summary,
+                    insights: insights,
+                    meta: {
+                        totalRecordsAnalyzed: summary.totalAnalyzed,
+                        confidence: summary.confidence,
+                        generationsRun: result.generationsRun || result.config?.generations,
+                        totalEvaluations: result.totalEvaluations,
+                        samplingEnabled: result.samplingEnabled,
+                        isPersonalized: result.isPersonalized
+                    }
+                });
+            } else {
+                return res.json({
+                    success: false,
+                    mode: 'analytics',
+                    error: 'No matching records found for analysis'
+                });
+            }
+        }
+        
+        // Normal mode - return records
         return res.json(result);
         
     } catch (error) {

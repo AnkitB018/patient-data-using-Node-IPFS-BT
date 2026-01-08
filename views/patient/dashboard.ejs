@@ -426,7 +426,12 @@
             <!-- Tab Navigation -->
             <ul class="nav nav-tabs" id="patientTabs" role="tablist" style="border-bottom: 2px solid rgba(0,210,255,0.3); margin-bottom: 2rem;">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="records-tab" data-bs-toggle="tab" data-bs-target="#records-content" type="button" role="tab" style="color: #00d2ff; background: transparent; border: none; border-bottom: 2px solid transparent; padding: 1rem 1.5rem; font-weight: 600;">
+                    <button class="nav-link active" id="health-profile-tab" data-bs-toggle="tab" data-bs-target="#health-profile-content" type="button" role="tab" style="color: #00d2ff; background: transparent; border: none; border-bottom: 2px solid transparent; padding: 1rem 1.5rem; font-weight: 600;">
+                        <i class="bi bi-heart-pulse-fill me-2"></i>Health Profile
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="records-tab" data-bs-toggle="tab" data-bs-target="#records-content" type="button" role="tab" style="color: #94a3b8; background: transparent; border: none; border-bottom: 2px solid transparent; padding: 1rem 1.5rem; font-weight: 600;">
                         <i class="bi bi-file-medical-fill me-2"></i>Medical Records
                     </button>
                 </li>
@@ -444,8 +449,33 @@
             
             <!-- Tab Content -->
             <div class="tab-content" id="patientTabsContent">
+                <!-- Health Profile Tab -->
+                <div class="tab-pane fade show active" id="health-profile-content" role="tabpanel">
+                    <div id="healthProfileContent">
+                        <% if (blocks && blocks.length > 0) { %>
+                            <div class="text-center" style="padding: 60px 20px;">
+                                <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem; color: #00d2ff !important;">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p style="color: #9ca3af; margin-top: 20px; font-size: 1.1rem;">Loading your health profile...</p>
+                            </div>
+                        <% } else { %>
+                            <!-- No Records State -->
+                            <div class="text-center" style="padding: 60px 20px;">
+                                <div style="background: linear-gradient(135deg, #00d2ff 0%, #0099cc 100%); width: 100px; height: 100px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                                    <i class="bi bi-file-medical-fill" style="font-size: 3rem; color: #000;"></i>
+                                </div>
+                                <h4 style="color: #00d2ff; margin-bottom: 15px;">No Medical Records Yet</h4>
+                                <p style="color: #9ca3af; font-size: 1.1rem; max-width: 500px; margin: 0 auto;">
+                                    Your health profile will appear here once your doctor adds your first medical record. This will enable personalized health forecasts based on your condition.
+                                </p>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+                
                 <!-- Medical Records Tab -->
-                <div class="tab-pane fade show active" id="records-content" role="tabpanel">
+                <div class="tab-pane fade" id="records-content" role="tabpanel">
                     <% if (blocks && blocks.length > 0) { %>
                 <% blocks.forEach((block, index) => { %>
                     <div class="record-card">
@@ -456,7 +486,7 @@
                                 </div>
                                 <div class="record-meta">
                                     <i class="bi bi-calendar-event"></i>
-                                    <%= new Date(block.timestamp).toLocaleString() %>
+                                    <%= new Date(parseInt(block.timestamp)).toLocaleString() %>
                                 </div>
                                 <div class="record-meta">
                                     <i class="bi bi-person-badge"></i>
@@ -681,7 +711,232 @@
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Pass server data to JavaScript safely -->
+    <script id="blocks-data" type="application/json"><%- JSON.stringify(blocks || []) %></script>
+    <script id="user-data" type="application/json"><%- JSON.stringify(userData || {}) %></script>
+    
     <script>
+        // Parse data from script tags
+        var blocksData = JSON.parse(document.getElementById('blocks-data').textContent);
+        var userDataJS = JSON.parse(document.getElementById('user-data').textContent);
+        var blocksLength = blocksData.length;
+        
+        // Load health profile on page load
+        <% if (blocks && blocks.length > 0) { %>
+        (async function() {
+            try {
+                const latestBlock = blocksData[0];
+                
+                // Fetch IPFS data using the correct patient API endpoint
+                const response = await fetch(`/patient/api/record/${latestBlock.ipfs_cid}`);
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    renderHealthProfile(latestBlock, result.data, userDataJS, blocksLength);
+                } else {
+                    throw new Error(result.error || 'Failed to load health data');
+                }
+            } catch (error) {
+                console.error('Error loading health profile:', error);
+                document.getElementById('healthProfileContent').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Error loading health profile: ${error.message}. Please refresh the page.
+                    </div>
+                `;
+            }
+        })();
+        <% } else { %>
+        <% } %>
+        
+        function renderHealthProfile(latestRecord, latestData, userData, totalBlocks) {
+            const formatDate = (timestamp) => {
+                const date = new Date(parseInt(timestamp));
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            };
+            
+            const parseArray = (data) => {
+                if (!data) return [];
+                if (typeof data === 'string' && data.length > 0) {
+                    return data.split(',').map(item => item.trim()).filter(item => item.length > 0);
+                }
+                if (Array.isArray(data)) {
+                    return data.filter(item => item && item.length > 0);
+                }
+                return [];
+            };
+            
+            const medications = parseArray(latestData.medications || latestData.medication);
+            const symptoms = parseArray(latestData.symptoms || latestData.symptom);
+            const treatments = parseArray(latestData.treatments_given || latestData.treatments || latestData.treatment);
+            
+            const html = `
+                <!-- Current Health Status Card -->
+                <div style="background: linear-gradient(145deg, rgba(0, 210, 255, 0.15) 0%, rgba(0, 255, 127, 0.15) 100%); border: 2px solid #00d2ff; border-radius: 20px; padding: 30px; margin-bottom: 25px; box-shadow: 0 8px 32px rgba(0, 210, 255, 0.2);">
+                    <div class="d-flex align-items-center justify-content-between mb-4">
+                        <div class="d-flex align-items-center">
+                            <div style="background: linear-gradient(135deg, #00d2ff 0%, #0099cc 100%); padding: 15px; border-radius: 15px; margin-right: 20px;">
+                                <i class="bi bi-heart-pulse-fill" style="font-size: 2.5rem; color: #000;"></i>
+                            </div>
+                            <div>
+                                <h3 style="color: #00ff7f; margin-bottom: 5px; font-weight: 700;">Your Current Health Status</h3>
+                                <p style="color: #9ca3af; margin: 0; font-size: 0.95rem;">
+                                    <i class="bi bi-calendar-check me-2"></i>Last updated: ${formatDate(latestRecord.timestamp)}
+                                </p>
+                            </div>
+                        </div>
+                        <button class="btn btn-lg" style="background: linear-gradient(135deg, #00ff7f 0%, #00cc66 100%); color: #000; font-weight: 600; padding: 12px 30px; border-radius: 12px; border: none; box-shadow: 0 4px 15px rgba(0, 255, 127, 0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0, 255, 127, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0, 255, 127, 0.3)';">
+                            <i class="bi bi-graph-up-arrow me-2"></i>Get Health Forecast
+                        </button>
+                    </div>
+                    
+                    <div class="row g-4">
+                        ${(latestData.primary_diagnosis || latestData.disease) ? `
+                        <div class="col-md-6">
+                            <div style="background: rgba(0, 0, 0, 0.3); border-left: 4px solid #00ff7f; border-radius: 12px; padding: 20px;">
+                                <div class="d-flex align-items-center mb-3">
+                                    <i class="bi bi-clipboard2-pulse-fill me-3" style="font-size: 1.8rem; color: #00ff7f;"></i>
+                                    <h5 style="color: #00ff7f; margin: 0; font-weight: 600;">Primary Diagnosis</h5>
+                                </div>
+                                <p style="color: #ffffff; font-size: 1.15rem; margin: 0; font-weight: 500;">
+                                    ${latestData.primary_diagnosis || latestData.disease}
+                                </p>
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        ${symptoms.length > 0 ? `
+                        <div class="col-md-6">
+                            <div style="background: rgba(0, 0, 0, 0.3); border-left: 4px solid #ffd700; border-radius: 12px; padding: 20px;">
+                                <div class="d-flex align-items-center mb-3">
+                                    <i class="bi bi-thermometer-half me-3" style="font-size: 1.8rem; color: #ffd700;"></i>
+                                    <h5 style="color: #ffd700; margin: 0; font-weight: 600;">Current Symptoms</h5>
+                                </div>
+                                <div style="color: #e5e7eb;">
+                                    ${symptoms.slice(0, 5).map(symptom => `
+                                        <span style="display: inline-block; background: rgba(255, 215, 0, 0.15); color: #ffd700; padding: 6px 14px; border-radius: 20px; margin: 4px; font-size: 0.9rem;">
+                                            <i class="bi bi-chevron-right" style="font-size: 0.7rem;"></i> ${symptom}
+                                        </span>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        ${medications.length > 0 ? `
+                        <div class="col-md-6">
+                            <div style="background: rgba(0, 0, 0, 0.3); border-left: 4px solid #a78bfa; border-radius: 12px; padding: 20px;">
+                                <div class="d-flex align-items-center mb-3">
+                                    <i class="bi bi-capsule-pill me-3" style="font-size: 1.8rem; color: #a78bfa;"></i>
+                                    <h5 style="color: #a78bfa; margin: 0; font-weight: 600;">Current Medications</h5>
+                                </div>
+                                <div style="color: #e5e7eb;">
+                                    ${medications.slice(0, 4).map(med => `
+                                        <div style="margin-bottom: 8px;">
+                                            <i class="bi bi-check-circle-fill me-2" style="color: #a78bfa;"></i>
+                                            <span style="font-weight: 500;">${med}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        ${treatments.length > 0 ? `
+                        <div class="col-md-6">
+                            <div style="background: rgba(0, 0, 0, 0.3); border-left: 4px solid #ff6b6b; border-radius: 12px; padding: 20px;">
+                                <div class="d-flex align-items-center mb-3">
+                                    <i class="bi bi-hospital me-3" style="font-size: 1.8rem; color: #ff6b6b;"></i>
+                                    <h5 style="color: #ff6b6b; margin: 0; font-weight: 600;">Treatment Plan</h5>
+                                </div>
+                                <div style="color: #e5e7eb;">
+                                    ${treatments.slice(0, 3).map(treatment => `
+                                        <div style="margin-bottom: 8px;">
+                                            <i class="bi bi-prescription2 me-2" style="color: #ff6b6b;"></i>
+                                            <span style="font-weight: 500;">${treatment}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        ${(latestData.affected_body_parts || latestData.affected_body_part) ? `
+                        <div class="col-md-6">
+                            <div style="background: rgba(0, 0, 0, 0.3); border-left: 4px solid #00d2ff; border-radius: 12px; padding: 20px;">
+                                <div class="d-flex align-items-center mb-3">
+                                    <i class="bi bi-body-text me-3" style="font-size: 1.8rem; color: #00d2ff;"></i>
+                                    <h5 style="color: #00d2ff; margin: 0; font-weight: 600;">Affected Body Parts</h5>
+                                </div>
+                                <p style="color: #ffffff; font-size: 1.15rem; margin: 0; font-weight: 500;">
+                                    ${latestData.affected_body_parts || latestData.affected_body_part}
+                                </p>
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+                
+                <!-- Doctor & Record Information -->
+                <div class="row g-4 mb-4">
+                    <div class="col-md-6">
+                        <div style="background: linear-gradient(145deg, rgba(30,41,59,0.9) 0%, rgba(15,23,42,0.9) 100%); border: 2px solid #00d2ff; border-radius: 16px; padding: 25px; height: 100%; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="bi bi-person-badge-fill me-3" style="font-size: 2rem; color: #00d2ff;"></i>
+                                <h5 style="color: #00d2ff; margin: 0; font-weight: 600;">Attending Physician</h5>
+                            </div>
+                            <p style="color: #ffffff; font-size: 1.1rem; margin-bottom: 10px; font-weight: 500;">
+                                Dr. ${latestRecord.doc || 'Not specified'}
+                            </p>
+                            ${latestData.followup_date ? `
+                                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(0, 210, 255, 0.3);">
+                                    <small style="color: #9ca3af; display: block; margin-bottom: 5px;">Next Follow-up:</small>
+                                    <span style="color: #00ff7f; font-weight: 600; font-size: 1rem;">
+                                        <i class="bi bi-calendar-event me-2"></i>${new Date(latestData.followup_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                    </span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div style="background: linear-gradient(145deg, rgba(30,41,59,0.9) 0%, rgba(15,23,42,0.9) 100%); border: 2px solid #00ff7f; border-radius: 16px; padding: 25px; height: 100%; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="bi bi-file-earmark-medical-fill me-3" style="font-size: 2rem; color: #00ff7f;"></i>
+                                <h5 style="color: #00ff7f; margin: 0; font-weight: 600;">Record Information</h5>
+                            </div>
+                            <div style="color: #e5e7eb;">
+                                <div style="margin-bottom: 12px;">
+                                    <small style="color: #9ca3af;">Record Type:</small><br>
+                                    <span style="font-weight: 500; color: #ffffff;">${latestRecord.file_type || 'Medical Record'}</span>
+                                </div>
+                                <div style="margin-bottom: 12px;">
+                                    <small style="color: #9ca3af;">Status:</small><br>
+                                    <span class="badge" style="background: ${latestRecord.file_status === 'Closed' ? '#ff6b6b' : '#00ff7f'}; color: #000; font-size: 0.9rem; padding: 6px 12px; font-weight: 600;">
+                                        ${latestRecord.file_status || 'Open'}
+                                    </span>
+                                </div>
+                                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(0, 255, 127, 0.3);">
+                                    <small style="color: #9ca3af;">Total Records:</small><br>
+                                    <span style="font-weight: 600; color: #00ff7f; font-size: 1.1rem;">${totalBlocks}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Info Alert -->
+                <div class="alert" style="background: rgba(0, 210, 255, 0.1); border: 1px solid #00d2ff; border-radius: 12px; color: #00d2ff; padding: 15px;">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    <strong>Your Health Journey:</strong> This information is based on your most recent medical visit. For a comprehensive health forecast based on similar patient outcomes, click the "Get Health Forecast" button above.
+                </div>
+            `;
+            
+            document.getElementById('healthProfileContent').innerHTML = html;
+        }
+        
         function openEditProfile() {
             const modal = new bootstrap.Modal(document.getElementById('editProfileModal'));
             modal.show();
@@ -731,18 +986,8 @@
                 const response = await fetch(`/patient/api/record/${cid}`);
                 const result = await response.json();
                 
-                console.log('=== IPFS Data Debug ===');
-                console.log('API Response:', result);
-                
                 if (result.success) {
                     const data = result.data;
-                    console.log('All data keys:', Object.keys(data));
-                    console.log('patient_name:', data.patient_name);
-                    console.log('patient_id:', data.patient_id);
-                    console.log('file_type:', data.file_type);
-                    console.log('file_base64 exists:', !!data.file_base64);
-                    console.log('file_base64 length:', data.file_base64 ? data.file_base64.length : 0);
-                    console.log('filename:', data.filename);
                     
                     // Normalize data keys - handle both formats (capitalized with spaces AND lowercase with underscores)
                     const normalizedData = {

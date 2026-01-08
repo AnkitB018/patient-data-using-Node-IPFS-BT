@@ -701,6 +701,18 @@
                 <h3><i class="bi bi-search me-2"></i>Find Similar Medical Records</h3>
             </div>
 
+            <!-- Search Mode Toggle -->
+            <div class="btn-group mb-4 w-100" role="group">
+                <button type="button" class="btn btn-primary active" id="myRecordsBtn" onclick="switchSearchMode('my-records')">
+                    <i class="bi bi-folder me-2"></i>My Records
+                </button>
+                <button type="button" class="btn btn-outline-primary" id="analyticsBtn" onclick="switchSearchMode('analytics')">
+                    <i class="bi bi-graph-up me-2"></i>Database Analytics
+                </button>
+            </div>
+
+            <input type="hidden" id="searchMode" value="my-records">
+
             <!-- Search Form -->
             <form id="gaSearchForm" onsubmit="performGASearch(event)">
                 <div class="row">
@@ -1702,6 +1714,308 @@
             return values.length > 0 ? values.join(', ') : '';
         }
 
+        function switchSearchMode(mode) {
+            const myRecordsBtn = document.getElementById('myRecordsBtn');
+            const analyticsBtn = document.getElementById('analyticsBtn');
+            const searchModeInput = document.getElementById('searchMode');
+            
+            if (mode === 'my-records') {
+                myRecordsBtn.classList.add('active');
+                myRecordsBtn.classList.remove('btn-outline-primary');
+                myRecordsBtn.classList.add('btn-primary');
+                analyticsBtn.classList.remove('active');
+                analyticsBtn.classList.remove('btn-primary');
+                analyticsBtn.classList.add('btn-outline-primary');
+                searchModeInput.value = 'my-records';
+            } else {
+                analyticsBtn.classList.add('active');
+                analyticsBtn.classList.remove('btn-outline-primary');
+                analyticsBtn.classList.add('btn-primary');
+                myRecordsBtn.classList.remove('active');
+                myRecordsBtn.classList.remove('btn-primary');
+                myRecordsBtn.classList.add('btn-outline-primary');
+                searchModeInput.value = 'analytics';
+            }
+            
+            // Clear previous results when switching modes
+            const resultsDiv = document.getElementById('gaResults');
+            if (resultsDiv.style.display === 'block') {
+                resultsDiv.style.display = 'none';
+            }
+        }
+
+        function renderAnalyticsDisplay(data) {
+            const resultsContent = document.getElementById('gaResultsContent');
+            const resultCount = document.getElementById('gaResultCount');
+            const { summary, insights, meta } = data;
+            
+            resultCount.textContent = `Database Analytics - ${meta.totalRecordsAnalyzed} Best Matches`;
+            
+            let html = `
+                <div class="alert mb-4" style="background: linear-gradient(135deg, rgba(0, 210, 255, 0.2) 0%, rgba(0, 255, 127, 0.2) 100%); border: none; border-left: 5px solid #00d2ff; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0, 210, 255, 0.2);">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-database-check me-3" style="font-size: 2rem; color: #00ff7f;"></i>
+                        <div>
+                            <h5 class="mb-1" style="color: #00ff7f; font-weight: 600;">Database-Wide Pattern Analysis Complete</h5>
+                            <p class="mb-0" style="color: #e5e7eb; font-size: 0.95rem;">
+                                Successfully analyzed <strong style="color: #00d2ff;">${meta.totalRecordsAnalyzed} best-matching records</strong> from the entire medical database using advanced genetic algorithms.
+                            </p>
+                        </div>
+                    </div>
+                    ${meta.samplingEnabled ? `<div class="mt-2 pt-2" style="border-top: 1px solid rgba(0, 210, 255, 0.3);"><small style="color: #9ca3af;"><i class="bi bi-cpu me-1"></i> Computational Intelligence: ${meta.totalEvaluations.toLocaleString()} fitness evaluations across ${meta.generationsRun} evolutionary generations</small></div>` : ''}
+                </div>
+            `;
+
+            // Clinical Insights
+            if (insights && insights.length > 0) {
+                html += `
+                    <div class="card mb-4" style="background: linear-gradient(145deg, rgba(30,41,59,0.95) 0%, rgba(15,23,42,0.95) 100%); border: 2px solid #00d2ff; border-radius: 16px; padding: 30px; box-shadow: 0 8px 32px rgba(0, 210, 255, 0.15);">
+                        <div class="d-flex align-items-center mb-3" style="border-bottom: 2px solid rgba(0, 210, 255, 0.3); padding-bottom: 15px;">
+                            <div style="background: linear-gradient(135deg, #00d2ff 0%, #0099cc 100%); padding: 12px; border-radius: 12px; margin-right: 15px;">
+                                <i class="bi bi-lightbulb-fill" style="font-size: 1.5rem; color: #000;"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-0" style="color: #00d2ff; font-weight: 600;">Clinical Intelligence Summary</h5>
+                                <small style="color: #9ca3af;">AI-powered pattern recognition and insights</small>
+                            </div>
+                        </div>
+                        <div class="insights-list">
+                `;
+                
+                insights.forEach((insight, idx) => {
+                    const colors = ['#00d2ff', '#00ff7f', '#ffd700', '#a78bfa'];
+                    const bgColors = ['rgba(0, 210, 255, 0.12)', 'rgba(0, 255, 127, 0.12)', 'rgba(255, 215, 0, 0.12)', 'rgba(167, 139, 250, 0.12)'];
+                    const color = colors[idx % colors.length];
+                    const bgColor = bgColors[idx % bgColors.length];
+                    
+                    html += `
+                        <div class="insight-item mb-3" style="padding: 18px 20px; background: ${bgColor}; border-left: 4px solid ${color}; border-radius: 10px; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                            <div class="d-flex align-items-start">
+                                <i class="bi ${insight.icon} me-3" style="color: ${color}; font-size: 1.3rem; margin-top: 2px;"></i>
+                                <span style="color: #e5e7eb; line-height: 1.6; font-size: 0.95rem;">${insight.text}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Diagnoses Section
+            if (summary.diagnoses && summary.diagnoses.length > 0) {
+                html += `
+                    <div class="card mb-4" style="background: rgba(30,41,59,0.9); border: 2px solid #00ff7f; border-radius: 15px; padding: 25px;">
+                        <h5 style="color: #00ff7f; margin-bottom: 20px;">
+                            <i class="bi bi-clipboard-pulse me-2"></i>Top Diagnoses
+                        </h5>
+                `;
+                
+                summary.diagnoses.forEach((item, index) => {
+                    const color = index === 0 ? '#00ff7f' : index === 1 ? '#00d2ff' : '#ffd700';
+                    html += `
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span style="color: #e5e7eb;">${item.diagnosis}</span>
+                                <span style="color: ${color}; font-weight: bold;">${item.percentage.toFixed(1)}%</span>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.1); height: 10px; border-radius: 5px; overflow: hidden;">
+                                <div style="background: ${color}; height: 100%; width: ${item.percentage}%; transition: width 0.3s;"></div>
+                            </div>
+                            <small style="color: #9ca3af;">${item.count} cases</small>
+                        </div>
+                    `;
+                });
+                
+                html += `</div>`;
+            }
+
+            // Symptoms Section
+            if (summary.symptoms && summary.symptoms.length > 0) {
+                html += `
+                    <div class="card mb-4" style="background: rgba(30,41,59,0.9); border: 2px solid #ffd700; border-radius: 15px; padding: 25px;">
+                        <h5 style="color: #ffd700; margin-bottom: 20px;">
+                            <i class="bi bi-thermometer me-2"></i>Common Symptoms
+                        </h5>
+                        <div class="row">
+                `;
+                
+                summary.symptoms.forEach(item => {
+                    html += `
+                        <div class="col-md-6 mb-3">
+                            <div style="padding: 12px; background: rgba(255, 215, 0, 0.1); border-radius: 8px;">
+                                <div class="d-flex justify-content-between">
+                                    <span style="color: #e5e7eb;">${item.symptom}</span>
+                                    <span style="color: #ffd700; font-weight: bold;">${item.percentage.toFixed(1)}%</span>
+                                </div>
+                                <small style="color: #9ca3af;">${item.count} cases</small>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Treatments Section
+            if (summary.treatments && summary.treatments.length > 0) {
+                html += `
+                    <div class="card mb-4" style="background: rgba(30,41,59,0.9); border: 2px solid #ff6b6b; border-radius: 15px; padding: 25px;">
+                        <h5 style="color: #ff6b6b; margin-bottom: 20px;">
+                            <i class="bi bi-heart-pulse me-2"></i>Treatment Approaches
+                        </h5>
+                `;
+                
+                summary.treatments.forEach(item => {
+                    html += `
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span style="color: #e5e7eb;">${item.treatment}</span>
+                                <span style="color: #ff6b6b; font-weight: bold;">${item.percentage.toFixed(1)}%</span>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.1); height: 8px; border-radius: 4px; overflow: hidden;">
+                                <div style="background: #ff6b6b; height: 100%; width: ${item.percentage}%;"></div>
+                            </div>
+                            <small style="color: #9ca3af;">${item.count} cases</small>
+                        </div>
+                    `;
+                });
+                
+                html += `</div>`;
+            }
+
+            // Medications Section
+            if (summary.medications && summary.medications.length > 0) {
+                html += `
+                    <div class="card mb-4" style="background: rgba(30,41,59,0.9); border: 2px solid #a78bfa; border-radius: 15px; padding: 25px;">
+                        <h5 style="color: #a78bfa; margin-bottom: 20px;">
+                            <i class="bi bi-capsule me-2"></i>Common Medications
+                        </h5>
+                        <div class="row">
+                `;
+                
+                summary.medications.forEach(item => {
+                    html += `
+                        <div class="col-md-6 mb-3">
+                            <div style="padding: 12px; background: rgba(167, 139, 250, 0.1); border-radius: 8px;">
+                                <div class="d-flex justify-content-between">
+                                    <span style="color: #e5e7eb;">${item.medication}</span>
+                                    <span style="color: #a78bfa; font-weight: bold;">${item.percentage.toFixed(1)}%</span>
+                                </div>
+                                <small style="color: #9ca3af;">${item.count} cases</small>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Demographics Section
+            if (summary.demographics && (summary.demographics.gender?.length > 0 || summary.demographics.bloodGroups?.length > 0 || summary.demographics.recordTypes?.length > 0)) {
+                html += `
+                    <div class="card mb-4" style="background: rgba(30,41,59,0.9); border: 2px solid #ec4899; border-radius: 15px; padding: 25px;">
+                        <h5 style="color: #ec4899; margin-bottom: 20px;">
+                            <i class="bi bi-people me-2"></i>Demographics
+                        </h5>
+                        <div class="row">
+                `;
+                
+                // Gender Distribution - filter out invalid values
+                if (summary.demographics.gender && summary.demographics.gender.length > 0) {
+                    const validGenders = summary.demographics.gender.filter(g => 
+                        g.gender && g.gender !== 'Unknown' && g.gender !== '0' && g.count > 0
+                    );
+                    
+                    if (validGenders.length > 0) {
+                        html += `
+                            <div class="col-md-4 mb-3">
+                                <h6 style="color: #ec4899; font-size: 0.9rem;">Gender Distribution</h6>
+                        `;
+                        validGenders.forEach(item => {
+                            html += `
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between">
+                                        <span style="color: #e5e7eb;">${item.gender}</span>
+                                        <span style="color: #ec4899;">${item.percentage.toFixed(1)}%</span>
+                                    </div>
+                                    <small style="color: #9ca3af;">${item.count} case${item.count !== 1 ? 's' : ''}</small>
+                                </div>
+                            `;
+                        });
+                        html += `</div>`;
+                    }
+                }
+                
+                // Blood Group Distribution
+                if (summary.demographics.bloodGroups && summary.demographics.bloodGroups.length > 0) {
+                    html += `
+                        <div class="col-md-4 mb-3">
+                            <h6 style="color: #ec4899; font-size: 0.9rem;">Blood Groups</h6>
+                    `;
+                    summary.demographics.bloodGroups.forEach(item => {
+                        html += `
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between">
+                                    <span style="color: #e5e7eb;">${item.type}</span>
+                                    <span style="color: #ec4899;">${item.percentage.toFixed(1)}%</span>
+                                </div>
+                                <small style="color: #9ca3af;">${item.count} case${item.count !== 1 ? 's' : ''}</small>
+                            </div>
+                        `;
+                    });
+                    html += `</div>`;
+                }
+                
+                // File Types
+                if (summary.demographics.recordTypes && summary.demographics.recordTypes.length > 0) {
+                    html += `
+                        <div class="col-md-4 mb-3">
+                            <h6 style="color: #ec4899; font-size: 0.9rem;">Record Types</h6>
+                    `;
+                    summary.demographics.recordTypes.forEach(item => {
+                        html += `
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between">
+                                    <span style="color: #e5e7eb;">${item.fileType}</span>
+                                    <span style="color: #ec4899;">${item.percentage.toFixed(1)}%</span>
+                                </div>
+                                <small style="color: #9ca3af;">${item.count} record${item.count !== 1 ? 's' : ''}</small>
+                            </div>
+                        `;
+                    });
+                    html += `</div>`;
+                }
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Confidence Level Footer
+            html += `
+                <div class="card" style="background: rgba(30,41,59,0.7); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 20px;">
+                    <div class="text-center" style="color: #9ca3af;">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Confidence Level:</strong> ${summary.confidenceLevel || 'Medium'}
+                        <br>
+                        <small>Based on ${meta.totalRecordsAnalyzed} records from the database</small>
+                    </div>
+                </div>
+            `;
+            
+            resultsContent.innerHTML = html;
+        }
+
         async function performGASearch(event) {
             event.preventDefault();
             
@@ -1716,6 +2030,9 @@
             resultsDiv.style.display = 'block';
 
             try {
+                const searchMode = document.getElementById('searchMode').value;
+                const analyticsMode = searchMode === 'analytics';
+                
                 const searchCriteria = {
                     file_type: document.getElementById('ga_file_type').value,
                     patient_id: document.getElementById('ga_patient_id').value,
@@ -1729,7 +2046,8 @@
                     blood_group: document.getElementById('ga_blood_group').value,
                     gender: document.getElementById('ga_gender').value,
                     age_range: document.getElementById('ga_age_range').value,
-                    limit: parseInt(document.getElementById('ga_limit').value) || 10
+                    limit: parseInt(document.getElementById('ga_limit').value) || 10,
+                    analyticsMode: analyticsMode
                 };
 
                 // Check if at least one criterion is provided
@@ -1759,7 +2077,10 @@
 
                 const data = await response.json();
 
-                if (data.success && data.recommendations && data.recommendations.length > 0) {
+                // Handle analytics mode response
+                if (data.mode === 'analytics' && data.summary) {
+                    renderAnalyticsDisplay(data);
+                } else if (data.success && data.recommendations && data.recommendations.length > 0) {
                     resultCount.textContent = data.recommendations.length;
                     
                     let html = `
