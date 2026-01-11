@@ -166,7 +166,7 @@ router.post('/upload', async (req, res) => {
             'doctor': doctor,
             'Uploaded By': `Dr. ${req.session.user.username}`,
             'Timestamp': new Date().toISOString(),
-            'Description': description || '',
+            'description': description || 'No additional notes',  // Lowercase to match admin route
             'File Status': file_status || 'Open',
             'file_data': file_base64,
             'filename': filename,

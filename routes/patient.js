@@ -6,6 +6,7 @@
 import express from 'express';
 import { getUserByUsername, updatePatient, getPatientBlocks, getAllPatients, getAllDoctors, grantConsent, getGrantedConsents, withdrawConsent, getReceivedConsents, getPatientsWhoGrantedConsent, getConsentedBlocks } from '../utils/dbHelper.js';
 import { fetchFromIPFS } from '../utils/ipfsHelper.js';
+import { generatePatientForecast } from '../utils/forecastHelper.js';
 
 const router = express.Router();
 
@@ -355,6 +356,35 @@ router.get('/api/consented-blocks/:patientId', async (req, res) => {
     } catch (error) {
         console.error('Get consented blocks error:', error);
         res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// ===========================================
+// HEALTH FORECAST API
+// ===========================================
+
+/**
+ * GET /patient/api/forecast
+ * Generate health forecast based on similar patient cases
+ */
+router.get('/api/forecast', async (req, res) => {
+    try {
+        const username = req.session.user.username;
+        const user = await getUserByUsername(username);
+        const patientId = user.patient_id || username;
+
+        console.log(`📊 Forecast request from patient: ${patientId}`);
+
+        // Generate forecast using GA-based similarity search
+        const forecast = await generatePatientForecast(patientId);
+
+        res.json(forecast);
+    } catch (error) {
+        console.error('Forecast API error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error generating forecast: ' + error.message
+        });
     }
 });
 

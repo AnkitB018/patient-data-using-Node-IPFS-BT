@@ -709,6 +709,33 @@
             </div>
         </div>
     </div>
+
+    <!-- Health Forecast Modal -->
+    <div class="modal fade" id="forecastModal" tabindex="-1" aria-labelledby="forecastModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content" style="background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%); border: 2px solid #00d2ff; border-radius: 20px; color: #e5e7eb;">
+                <div class="modal-header" style="border-bottom: 2px solid rgba(0, 210, 255, 0.3);">
+                    <h5 class="modal-title" id="forecastModalLabel" style="color: #00d2ff; font-weight: 700;">
+                        <i class="bi bi-graph-up-arrow me-2"></i>Health Recovery Forecast
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="forecastContent" style="padding: 30px;">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-3" style="color: #9ca3af;">Analyzing similar patient cases...</p>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top: 2px solid rgba(0, 210, 255, 0.3);">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: #e5e7eb;">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
@@ -787,7 +814,7 @@
                                 </p>
                             </div>
                         </div>
-                        <button class="btn btn-lg" style="background: linear-gradient(135deg, #00ff7f 0%, #00cc66 100%); color: #000; font-weight: 600; padding: 12px 30px; border-radius: 12px; border: none; box-shadow: 0 4px 15px rgba(0, 255, 127, 0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0, 255, 127, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0, 255, 127, 0.3)';">
+                        <button class="btn btn-lg" onclick="getForecast()" style="background: linear-gradient(135deg, #00ff7f 0%, #00cc66 100%); color: #000; font-weight: 600; padding: 12px 30px; border-radius: 12px; border: none; box-shadow: 0 4px 15px rgba(0, 255, 127, 0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0, 255, 127, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0, 255, 127, 0.3)';">
                             <i class="bi bi-graph-up-arrow me-2"></i>Get Health Forecast
                         </button>
                     </div>
@@ -1461,6 +1488,195 @@
             }
         } catch (error) {
             container.innerHTML = '<div class="alert alert-danger">Error loading records</div>';
+        }
+    }
+
+    // ===========================================
+    // HEALTH FORECAST FUNCTIONALITY
+    // ===========================================
+    
+    async function getForecast() {
+        const modal = new bootstrap.Modal(document.getElementById('forecastModal'));
+        const content = document.getElementById('forecastContent');
+        
+        // Show modal with loading state
+        modal.show();
+        content.innerHTML = `
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3" style="color: #9ca3af; font-size: 1.1rem;">🔍 Searching database for similar cases...</p>
+                <p style="color: #64748b; font-size: 0.9rem;">This may take a moment as we analyze historical patient data</p>
+            </div>
+        `;
+        
+        try {
+            const response = await fetch('/patient/api/forecast');
+            const result = await response.json();
+            
+            if (!result.success) {
+                content.innerHTML = `
+                    <div class="alert alert-danger" style="background: rgba(255, 107, 107, 0.15); border: 2px solid #ff6b6b; color: #ffc9c9;">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>Error:</strong> ${result.message || 'Unable to generate forecast'}
+                    </div>
+                `;
+                return;
+            }
+            
+            if (!result.hasData) {
+                // No sufficient data found
+                content.innerHTML = `
+                    <div style="text-align: center; padding: 40px 20px;">
+                        <div style="background: rgba(255, 215, 0, 0.1); border: 2px solid #ffd700; border-radius: 20px; padding: 40px; margin-bottom: 20px;">
+                            <i class="bi bi-info-circle" style="font-size: 4rem; color: #ffd700;"></i>
+                            <h4 style="color: #ffd700; margin-top: 20px; margin-bottom: 15px;">Insufficient Similar Cases</h4>
+                            <p style="color: #e5e7eb; font-size: 1.1rem; margin-bottom: 10px;">${result.message}</p>
+                            ${result.matchesFound !== undefined ? `
+                                <div style="margin-top: 25px; padding: 20px; background: rgba(0, 0, 0, 0.3); border-radius: 12px;">
+                                    <p style="color: #9ca3af; margin: 0;"><i class="bi bi-bar-chart me-2"></i>Cases found: <strong style="color: #ffd700;">${result.matchesFound}</strong></p>
+                                    ${result.recoveredCases !== undefined ? `<p style="color: #9ca3af; margin: 8px 0 0 0;"><i class="bi bi-heart-pulse me-2"></i>With recovery data: <strong style="color: #ffd700;">${result.recoveredCases}</strong></p>` : ''}
+                                    <p style="color: #64748b; margin: 15px 0 0 0; font-size: 0.9rem;">Need at least 3 cases with 80%+ similarity for reliable predictions</p>
+                                </div>
+                            ` : ''}
+                        </div>
+                        <p style="color: #9ca3af; font-size: 0.95rem;">
+                            <i class="bi bi-lightbulb me-2"></i>Your condition appears to be unique in our database. As more patients with similar conditions are treated, forecasts will become available.
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Display forecast data
+            const f = result.forecast;
+            const confidenceColor = 
+                f.confidenceLevel === 'High' ? '#00ff7f' :
+                f.confidenceLevel === 'Moderate' ? '#ffd700' :
+                f.confidenceLevel === 'Limited' ? '#ff9500' : '#ff6b6b';
+            
+            content.innerHTML = `
+                <!-- Diagnosis Header -->
+                <div style="background: linear-gradient(135deg, rgba(0, 210, 255, 0.15) 0%, rgba(0, 255, 127, 0.15) 100%); border: 2px solid #00d2ff; border-radius: 16px; padding: 25px; margin-bottom: 25px; text-align: center;">
+                    <h5 style="color: #00d2ff; margin: 0 0 10px 0; font-weight: 700;">
+                        <i class="bi bi-clipboard2-pulse me-2"></i>${f.diagnosis || 'Current Condition'}
+                    </h5>
+                    <p style="color: #9ca3af; margin: 0; font-size: 0.95rem;">
+                        <i class="bi bi-people-fill me-2"></i>Based on ${f.similarCasesFound} similar patient cases
+                    </p>
+                </div>
+                
+                <!-- Confidence Indicator -->
+                <div style="background: rgba(0, 0, 0, 0.3); border-left: 4px solid ${confidenceColor}; border-radius: 12px; padding: 20px; margin-bottom: 25px;">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h6 style="color: ${confidenceColor}; margin: 0 0 8px 0; font-weight: 600;">
+                                <i class="bi bi-speedometer2 me-2"></i>Forecast Confidence: ${f.confidenceLevel}
+                            </h6>
+                            <p style="color: #9ca3af; margin: 0; font-size: 0.9rem;">
+                                ${f.totalMatchesAnalyzed} total matches analyzed • ${f.fitnessThreshold} similarity threshold
+                            </p>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <div style="font-size: 2rem; color: ${confidenceColor}; font-weight: 700;">${f.averageFitness}</div>
+                            <small style="color: #64748b;">Average Match Quality</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recovery Timeline -->
+                <div style="background: linear-gradient(145deg, rgba(0, 255, 127, 0.1) 0%, rgba(0, 210, 255, 0.1) 100%); border: 2px solid #00ff7f; border-radius: 16px; padding: 25px; margin-bottom: 25px;">
+                    <h6 style="color: #00ff7f; margin-bottom: 20px; font-weight: 700;">
+                        <i class="bi bi-clock-history me-2"></i>Expected Recovery Timeline
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div style="background: rgba(0, 0, 0, 0.4); border-radius: 12px; padding: 20px; text-align: center;">
+                                <div style="font-size: 2.5rem; color: #00ff7f; font-weight: 700; margin-bottom: 5px;">
+                                    ${f.recovery.averageWeeks}
+                                </div>
+                                <div style="color: #9ca3af; font-size: 0.9rem;">Average Weeks</div>
+                                <div style="color: #64748b; font-size: 0.8rem; margin-top: 5px;">(${f.recovery.averageDays} days)</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div style="background: rgba(0, 0, 0, 0.4); border-radius: 12px; padding: 20px; text-align: center;">
+                                <div style="font-size: 2.5rem; color: #ffd700; font-weight: 700; margin-bottom: 5px;">
+                                    ${f.recovery.rangeWeeks.min}-${f.recovery.rangeWeeks.max}
+                                </div>
+                                <div style="color: #9ca3af; font-size: 0.9rem;">Typical Range (weeks)</div>
+                                <div style="color: #64748b; font-size: 0.8rem; margin-top: 5px;">(${f.recovery.rangeDays.min}-${f.recovery.rangeDays.max} days)</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div style="background: rgba(0, 0, 0, 0.4); border-radius: 12px; padding: 20px; text-align: center;">
+                                <div style="font-size: 2.5rem; color: #00d2ff; font-weight: 700; margin-bottom: 5px;">
+                                    ${f.successRate}
+                                </div>
+                                <div style="color: #9ca3af; font-size: 0.9rem;">Recovery Rate</div>
+                                <div style="color: #64748b; font-size: 0.8rem; margin-top: 5px;">Full recovery achieved</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Common Treatments -->
+                ${f.commonTreatments && f.commonTreatments.length > 0 ? `
+                <div style="background: rgba(167, 139, 250, 0.1); border-left: 4px solid #a78bfa; border-radius: 12px; padding: 20px; margin-bottom: 25px;">
+                    <h6 style="color: #a78bfa; margin-bottom: 15px; font-weight: 600;">
+                        <i class="bi bi-hospital me-2"></i>Most Effective Treatments
+                    </h6>
+                    <div class="row g-2">
+                        ${f.commonTreatments.map(treatment => `
+                            <div class="col-md-12">
+                                <div style="background: rgba(167, 139, 250, 0.08); border-radius: 8px; padding: 12px; display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="color: #e5e7eb;">
+                                        <i class="bi bi-check-circle-fill me-2" style="color: #a78bfa;"></i>${treatment.name}
+                                    </span>
+                                    <span style="color: #a78bfa; font-weight: 600;">${treatment.percentage}% of cases</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                ` : ''}
+                
+                <!-- Common Medications -->
+                ${f.commonMedications && f.commonMedications.length > 0 ? `
+                <div style="background: rgba(255, 107, 107, 0.1); border-left: 4px solid #ff6b6b; border-radius: 12px; padding: 20px; margin-bottom: 25px;">
+                    <h6 style="color: #ff6b6b; margin-bottom: 15px; font-weight: 600;">
+                        <i class="bi bi-capsule-pill me-2"></i>Commonly Prescribed Medications
+                    </h6>
+                    <div class="row g-2">
+                        ${f.commonMedications.map(medication => `
+                            <div class="col-md-12">
+                                <div style="background: rgba(255, 107, 107, 0.08); border-radius: 8px; padding: 12px; display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="color: #e5e7eb;">
+                                        <i class="bi bi-check-circle-fill me-2" style="color: #ff6b6b;"></i>${medication.name}
+                                    </span>
+                                    <span style="color: #ff6b6b; font-weight: 600;">${medication.percentage}% of cases</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                ` : ''}
+                
+                <!-- Disclaimer -->
+                <div class="alert" style="background: rgba(255, 215, 0, 0.1); border: 1px solid rgba(255, 215, 0, 0.3); color: #ffd700; margin: 0;">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    <strong>Important:</strong> This forecast is based on historical data from similar cases and should not replace professional medical advice. Always consult with your healthcare provider for personalized treatment decisions.
+                </div>
+            `;
+        } catch (error) {
+            console.error('Forecast error:', error);
+            content.innerHTML = `
+                <div class="alert alert-danger" style="background: rgba(255, 107, 107, 0.15); border: 2px solid #ff6b6b; color: #ffc9c9;">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <strong>Error:</strong> Unable to generate forecast. Please try again later.
+                </div>
+            `;
         }
     }
 

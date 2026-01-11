@@ -650,14 +650,19 @@ function calculateFitness(record, searchCriteria) {
         maxPossibleScore += result.maxScore;
     }
     
-    // 9. CURRENT CONDITIONS / GENERAL MEDICAL HISTORY (Medium priority - 9.0)
+    // 9. CURRENT CONDITIONS / GENERAL MEDICAL HISTORY / NOTES (Medium priority - 9.0)
     if (searchCriteria.current_conditions && searchCriteria.current_conditions.trim()) {
+        // Check multiple possible fields for notes/conditions
+        const recordNotes = record.current_conditions || record.description || record.notes || 
+                          record.doctor_notes || record.additional_notes || '';
+        
         const result = matchTextField(
             searchCriteria.current_conditions,
-            record.current_conditions,
+            recordNotes,
             FITNESS_WEIGHTS.CONDITION_SIMILARITY,
             true
         );
+        
         fitness += result.fitness;
         maxPossibleScore += result.maxScore;
     }
@@ -842,7 +847,8 @@ export async function recommendRecordsGA(searchCriteria, limit = 10) {
         // Phase 1: Quick filter based on metadata only (if specific filters provided)
         const needsIPFSData = searchCriteria.primary_diagnosis || searchCriteria.symptoms || 
                              searchCriteria.affected_body_parts || searchCriteria.medications ||
-                             searchCriteria.treatments || searchCriteria.secondary_diagnoses;
+                             searchCriteria.treatments || searchCriteria.secondary_diagnoses ||
+                             searchCriteria.current_conditions;
         
         // If searching by IPFS fields, we MUST fetch IPFS data for all records first
         if (needsIPFSData) {
@@ -875,13 +881,16 @@ export async function recommendRecordsGA(searchCriteria, limit = 10) {
                                                    (Array.isArray(ipfsData.treatments) ? ipfsData.treatments.join(', ') : 
                                                    (ipfsData.treatments_given || ipfsData.treatments || ''));
                                 record.medications = Array.isArray(ipfsData.medications) ? ipfsData.medications.join(', ') : (ipfsData.medications || '');
+                                // Merge notes/description field
+                                record.description = ipfsData.description || ipfsData.notes || ipfsData.doctor_notes || ipfsData.additional_notes || '';
                                 
                                 console.log(`Block ${record.block_index} processed:`, {
                                     symptoms: record.symptoms,
                                     primary_diagnosis: record.primary_diagnosis,
                                     affected_body_parts: record.affected_body_parts,
                                     treatments: record.treatments,
-                                    medications: record.medications
+                                    medications: record.medications,
+                                    description: record.description
                                 });
                             }
                         }
@@ -1123,7 +1132,8 @@ export async function recommendRecordsGAAdaptive(searchCriteria, limit = 10, use
         // Check if IPFS data needed
         const needsIPFSData = searchCriteria.primary_diagnosis || searchCriteria.symptoms || 
                              searchCriteria.affected_body_parts || searchCriteria.medications ||
-                             searchCriteria.treatments || searchCriteria.secondary_diagnoses;
+                             searchCriteria.treatments || searchCriteria.secondary_diagnoses ||
+                             searchCriteria.current_conditions;
         
         // Evolution loop with smart sampling
         let population = fullPopulation;
@@ -1176,6 +1186,9 @@ export async function recommendRecordsGAAdaptive(searchCriteria, limit = 10, use
                                                                (Array.isArray(ipfsData.treatments) ? ipfsData.treatments.join(', ') : 
                                                                (ipfsData.treatments_given || ipfsData.treatments || ''));
                                             record.medications = Array.isArray(ipfsData.medications) ? ipfsData.medications.join(', ') : (ipfsData.medications || '');
+                                            // Merge notes/description field
+                                            record.description = ipfsData.description || ipfsData.notes || ipfsData.doctor_notes || ipfsData.additional_notes || '';
+                                            
                                             record.ipfsDataFetched = true;
                                         }
                                     }
@@ -1384,7 +1397,12 @@ function calculateFitnessWithWeights(record, searchCriteria, weights) {
     }
     
     if (searchCriteria.current_conditions?.trim()) {
-        const result = matchTextField(searchCriteria.current_conditions, record.current_conditions, weights.CONDITION_SIMILARITY);
+        // Check multiple possible fields for notes/conditions
+        const recordNotes = record.current_conditions || record.description || record.notes || 
+                          record.doctor_notes || record.additional_notes || '';
+        
+        const result = matchTextField(searchCriteria.current_conditions, recordNotes, weights.CONDITION_SIMILARITY);
+        
         fitness += result.fitness;
         maxPossibleScore += result.maxScore;
     }
