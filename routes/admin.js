@@ -8,6 +8,8 @@ import crypto from 'crypto';
 import { getAllPatients, getUserByUsername, updatePatient, getAllBlocks, getPatientBlocks as getPatientBlocksDB, addBlock, getBlockchainStats, getAllDoctors, assignDoctorToPatient, removeDoctorPatientRelation, getAllDoctorPatientRelations } from '../utils/dbHelper.js';
 import { uploadMetadataToIPFS, fetchFromIPFS, checkIPFSConnection } from '../utils/ipfsHelper.js';
 import { addBlockToChain } from '../utils/blockchainHelper.js';
+import { getAllBuckets, getBucketStats } from '../utils/bucketManager.js';
+import { DIAGNOSIS_CATEGORIES, FILE_TYPE_CATEGORIES, SYMPTOM_CATEGORIES, BODY_PART_CATEGORIES, AGE_GROUPS } from '../utils/bucketManager.js';
 
 const router = express.Router();
 
@@ -480,6 +482,111 @@ router.delete('/api/remove-doctor-patient/:doctorId/:patientId', async (req, res
         res.json({ success: true, message: 'Relation removed successfully' });
     } catch (error) {
         console.error('Remove relation error:', error);
+        res.json({ success: false, error: error.message });
+    }
+});
+
+// ===========================================
+// BUCKET VISUALIZATION API
+// ===========================================
+
+// Get bucket statistics and structure
+router.get('/api/buckets/stats', async (req, res) => {
+    try {
+        const stats = getBucketStats();
+        res.json({ success: true, stats });
+    } catch (error) {
+        console.error('Bucket stats error:', error);
+        res.json({ success: false, error: error.message });
+    }
+});
+
+// Get all bucket categories
+router.get('/api/buckets/categories', async (req, res) => {
+    try {
+        const allBuckets = getAllBuckets();
+        
+        const categories = {
+            diagnosis: {
+                name: 'Diagnosis',
+                icon: 'bi-virus',
+                count: Object.keys(allBuckets.diagnosis).length,
+                buckets: Object.keys(allBuckets.diagnosis).sort()
+            },
+            fileType: {
+                name: 'File Types',
+                icon: 'bi-file-earmark-medical',
+                count: Object.keys(allBuckets.fileType).length,
+                buckets: Object.keys(allBuckets.fileType).sort()
+            },
+            symptom: {
+                name: 'Symptoms',
+                icon: 'bi-thermometer-half',
+                count: Object.keys(allBuckets.symptom).length,
+                buckets: Object.keys(allBuckets.symptom).sort()
+            },
+            bodyPart: {
+                name: 'Body Parts',
+                icon: 'bi-person',
+                count: Object.keys(allBuckets.bodyPart).length,
+                buckets: Object.keys(allBuckets.bodyPart).sort()
+            },
+            ageGroup: {
+                name: 'Age Groups',
+                icon: 'bi-calendar-range',
+                count: Object.keys(allBuckets.ageGroup).length,
+                buckets: Object.keys(allBuckets.ageGroup).sort()
+            },
+            gender: {
+                name: 'Gender',
+                icon: 'bi-gender-ambiguous',
+                count: Object.keys(allBuckets.gender).length,
+                buckets: Object.keys(allBuckets.gender).sort()
+            },
+            status: {
+                name: 'Status',
+                icon: 'bi-check-circle',
+                count: Object.keys(allBuckets.status).length,
+                buckets: Object.keys(allBuckets.status).sort()
+            },
+            leftover: {
+                name: 'Leftover',
+                icon: 'bi-inbox',
+                count: allBuckets.leftover.size > 0 ? 1 : 0,
+                buckets: allBuckets.leftover.size > 0 ? ['uncategorized'] : []
+            }
+        };
+        
+        res.json({ success: true, categories });
+    } catch (error) {
+        console.error('Bucket categories error:', error);
+        res.json({ success: false, error: error.message });
+    }
+});
+
+// Get records in a specific bucket
+router.get('/api/buckets/:category/:bucketName', async (req, res) => {
+    try {
+        const { category, bucketName } = req.params;
+        const allBuckets = getAllBuckets();
+        
+        let records = [];
+        
+        if (category === 'leftover') {
+            records = Array.from(allBuckets.leftover).sort((a, b) => a - b);
+        } else if (allBuckets[category] && allBuckets[category][bucketName]) {
+            records = Array.from(allBuckets[category][bucketName]).sort((a, b) => a - b);
+        }
+        
+        res.json({ 
+            success: true, 
+            category, 
+            bucketName,
+            count: records.length,
+            records 
+        });
+    } catch (error) {
+        console.error('Bucket records error:', error);
         res.json({ success: false, error: error.message });
     }
 });

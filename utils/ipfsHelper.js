@@ -30,9 +30,10 @@ async function uploadMetadataToIPFS(metadata) {
 /**
  * Fetch content from IPFS by CID
  * @param {string} cid - Content Identifier
+ * @param {boolean} silent - Suppress error logging (default: false)
  * @returns {Promise<Object>} Parsed JSON content
  */
-async function fetchFromIPFS(cid) {
+async function fetchFromIPFS(cid, silent = false) {
     try {
         const chunks = [];
         for await (const chunk of ipfs.cat(cid)) {
@@ -41,7 +42,9 @@ async function fetchFromIPFS(cid) {
         const data = Buffer.concat(chunks);
         return JSON.parse(data.toString());
     } catch (error) {
-        console.error('IPFS fetch error:', error);
+        if (!silent) {
+            console.error('IPFS fetch error:', error);
+        }
         throw new Error('Failed to fetch from IPFS: ' + error.message);
     }
 }

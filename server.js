@@ -21,6 +21,9 @@ import patientRoutes from './routes/patient.js';
 import doctorRoutes from './routes/doctor.js';
 import gaRoutes from './routes/ga.js';
 
+// Import bucket manager for GA search
+import { initializeBuckets } from './utils/bucketManager.js';
+
 // ES6 module fix for __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -110,7 +113,7 @@ app.use((err, req, res, next) => {
 // START SERVER
 // ===========================================
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
     console.log('╔════════════════════════════════════════════════╗');
     console.log('║   Medical Records Management System           ║');
     console.log('║   Blockchain + IPFS                            ║');
@@ -121,6 +124,11 @@ app.listen(PORT, () => {
     console.log(`🔗 Blockchain API: ${process.env.BLOCKCHAIN_API_URL}`);
     console.log(`📦 IPFS: ${process.env.IPFS_PROTOCOL}://${process.env.IPFS_HOST}:${process.env.IPFS_PORT}`);
     console.log('');
+    
+    // Initialize bucket system for GA search
+    console.log('🔧 Initializing GA search buckets...');
+    await initializeBuckets();
+    
     console.log('Press Ctrl+C to stop the server');
     console.log('════════════════════════════════════════════════');
 });

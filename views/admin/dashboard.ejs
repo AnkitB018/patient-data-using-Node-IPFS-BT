@@ -543,9 +543,17 @@
             <div class="content-card">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h3><i class="bi bi-link-45deg me-2"></i>Blockchain Explorer</h3>
-                    <button class="btn btn-primary" onclick="loadBlockchain(20)">
-                        <i class="bi bi-arrow-clockwise me-2"></i>Load More Blocks
-                    </button>
+                    <div class="d-flex gap-2">
+                        <div class="input-group" style="width: 250px;">
+                            <input type="number" class="form-control" id="blockSearchInput" placeholder="Search by block #" min="0">
+                            <button class="btn btn-success" onclick="searchBlockByIndex()">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                        <button class="btn btn-primary" onclick="loadBlockchain(20)">
+                            <i class="bi bi-arrow-clockwise me-2"></i>Load More Blocks
+                        </button>
+                    </div>
                 </div>
                 
                 <div id="blockchainList">
@@ -770,12 +778,71 @@
         <!-- Tab: GA Visualization -->
         <div id="ga-viz-tab" class="tab-content">
             <div class="content-card">
-                <h3 class="mb-4"><i class="bi bi-graph-up me-2"></i>Genetic Algorithm Visualization</h3>
-                <div class="empty-state">
-                    <i class="bi bi-hourglass-split"></i>
-                    <h5>Coming Soon</h5>
-                    <p>GA-based access control visualization will be implemented here</p>
-                    <small style="color: rgba(255,255,255,0.4);">This feature is under development</small>
+                <h3 class="mb-4"><i class="bi bi-graph-up me-2"></i>GA Bucket Visualization</h3>
+                <p class="text-muted mb-4">Explore the bucket system used for multi-population genetic algorithm search</p>
+                
+                <!-- Bucket Statistics -->
+                <div id="bucketStats" class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="alert alert-info">
+                            <i class="bi bi-hourglass-split me-2"></i>Loading bucket statistics...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Three-Level Visualization -->
+                <div class="row">
+                    <!-- Level 1: Categories -->
+                    <div class="col-md-4">
+                        <div class="card" style="background: rgba(30,41,59,0.8); border: 1px solid rgba(59,130,246,0.3);">
+                            <div class="card-header" style="background: rgba(59,130,246,0.2); border-bottom: 1px solid rgba(59,130,246,0.3);">
+                                <h5 class="mb-0"><i class="bi bi-folder me-2"></i>Bucket Categories</h5>
+                            </div>
+                            <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                                <div id="categoryList" class="list-group">
+                                    <div class="text-center py-4">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Level 2: Buckets in Selected Category -->
+                    <div class="col-md-4">
+                        <div class="card" style="background: rgba(30,41,59,0.8); border: 1px solid rgba(59,130,246,0.3);">
+                            <div class="card-header" style="background: rgba(59,130,246,0.2); border-bottom: 1px solid rgba(59,130,246,0.3);">
+                                <h5 class="mb-0"><i class="bi bi-box me-2"></i>Buckets</h5>
+                            </div>
+                            <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                                <div id="bucketList">
+                                    <div class="empty-state text-center py-5" style="color: rgba(255,255,255,0.5);">
+                                        <i class="bi bi-arrow-left" style="font-size: 2rem;"></i>
+                                        <p class="mt-3 mb-0">Select a category to view buckets</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Level 3: Block Indices in Selected Bucket -->
+                    <div class="col-md-4">
+                        <div class="card" style="background: rgba(30,41,59,0.8); border: 1px solid rgba(59,130,246,0.3);">
+                            <div class="card-header" style="background: rgba(59,130,246,0.2); border-bottom: 1px solid rgba(59,130,246,0.3);">
+                                <h5 class="mb-0"><i class="bi bi-file-earmark-binary me-2"></i>Block Indices</h5>
+                            </div>
+                            <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                                <div id="blockList">
+                                    <div class="empty-state text-center py-5" style="color: rgba(255,255,255,0.5);">
+                                        <i class="bi bi-arrow-left" style="font-size: 2rem;"></i>
+                                        <p class="mt-3 mb-0">Select a bucket to view block indices</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1097,6 +1164,7 @@
             // Load data when switching tabs
             if (tabName === 'blockchain') loadBlockchain(10);
             if (tabName === 'doctor-patient') loadDoctorPatientData();
+            if (tabName === 'ga-viz') loadBucketVisualization();
         }
         
         // Initialize tab buttons with event listeners
@@ -1223,6 +1291,122 @@
                     });
                     
                     container.innerHTML = html || '<div class="empty-state"><i class="bi bi-inbox"></i><h5>No blocks found</h5></div>';
+                } else {
+                    container.innerHTML = '<div class="alert alert-danger">Failed to load blockchain</div>';
+                }
+            } catch (error) {
+                container.innerHTML = '<div class="alert alert-danger">Error: ' + error.message + '</div>';
+            }
+        }
+        
+        // Search block by index
+        async function searchBlockByIndex() {
+            const blockIndex = document.getElementById('blockSearchInput').value;
+            const container = document.getElementById('blockchainList');
+            
+            if (!blockIndex || blockIndex < 0) {
+                alert('Please enter a valid block index');
+                return;
+            }
+            
+            container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div><p class="mt-3">Searching for block #' + blockIndex + '...</p></div>';
+            
+            try {
+                const response = await fetch('/admin/api/blockchain');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const block = data.chain.find(b => b.block_index == blockIndex);
+                    
+                    if (!block) {
+                        container.innerHTML = `
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle me-2"></i>Block #${blockIndex} not found in the blockchain
+                            </div>
+                            <button class="btn btn-secondary" onclick="loadBlockchain(20)">
+                                <i class="bi bi-arrow-left me-2"></i>Back to Blockchain Explorer
+                            </button>
+                        `;
+                        return;
+                    }
+                    
+                    // Display the found block
+                    const foundBlockIndex = block.block_index;
+                    const blockHash = block.block_hash;
+                    const isGenesisBlock = foundBlockIndex === 0;
+                    const cid = block.ipfs_cid || 'N/A';
+                    const hasCid = cid !== 'N/A' && cid !== '';
+                    const patientId = block.patient_id || (isGenesisBlock ? 'Genesis' : 'N/A');
+                    const fileType = block.file_type || (isGenesisBlock ? 'System Initialization' : 'N/A');
+                    const doctor = block.doc || (isGenesisBlock ? 'System' : 'N/A');
+                    const status = block.file_status || 'Open';
+                    
+                    // Format timestamp
+                    let formattedDate = block.timestamp;
+                    if (block.timestamp && !isGenesisBlock) {
+                        try {
+                            const timestampNum = typeof block.timestamp === 'string' ? parseInt(block.timestamp, 10) : block.timestamp;
+                            const date = new Date(timestampNum);
+                            formattedDate = date.toLocaleString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: true
+                            });
+                        } catch (e) {
+                            formattedDate = block.timestamp;
+                        }
+                    }
+                    
+                    const html = `
+                        <div class="alert alert-success mb-3">
+                            <i class="bi bi-check-circle me-2"></i>Block #${foundBlockIndex} found!
+                        </div>
+                        <button class="btn btn-secondary mb-3" onclick="loadBlockchain(20)">
+                            <i class="bi bi-arrow-left me-2"></i>Back to Blockchain Explorer
+                        </button>
+                        <div class="block-card" style="border: 2px solid rgba(34, 197, 94, 0.5); border-radius: 15px; padding: 20px; background: rgba(15,52,96,0.3);">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <div class="block-index" style="font-size: 1.3rem; color: #22c55e; font-weight: bold;">Block #${foundBlockIndex}</div>
+                                    <small style="color: rgba(255,255,255,0.7);"><i class="bi bi-clock me-1"></i>${formattedDate}</small>
+                                </div>
+                                ${hasCid ? `<button class="btn btn-primary" onclick="viewRecord('${cid}')" style="white-space: nowrap;">
+                                    <i class="bi bi-eye me-1"></i>View Details
+                                </button>` : '<span class="badge bg-secondary">Genesis Block</span>'}
+                            </div>
+                            
+                            <div class="row mb-2">
+                                <div class="col-md-4">
+                                    <strong style="color: #94a3b8;">Patient ID:</strong> <span style="color: #e4e4e7;">${patientId}</span>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong style="color: #94a3b8;">File Type:</strong> <span style="color: #e4e4e7;">${fileType}</span>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong style="color: #94a3b8;">Doctor:</strong> <span style="color: #e4e4e7;">${doctor}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <strong style="color: #94a3b8;">Status:</strong> 
+                                    <span class="badge ${status.toLowerCase() === 'open' ? 'bg-success' : 'bg-secondary'}">${status}</span>
+                                </div>
+                                ${hasCid ? `<div class="col-md-6">
+                                    <strong style="color: #94a3b8;">IPFS CID:</strong> <code style="color: #22c55e; font-size: 0.85rem;">${cid.substring(0, 20)}...</code>
+                                </div>` : ''}
+                            </div>
+                            
+                            <div class="mt-2" style="font-size: 0.75rem; color: rgba(255,255,255,0.5); word-break: break-all;">
+                                <strong>Hash:</strong> ${blockHash}
+                            </div>
+                        </div>
+                    `;
+                    
+                    container.innerHTML = html;
                 } else {
                     container.innerHTML = '<div class="alert alert-danger">Failed to load blockchain</div>';
                 }
@@ -2174,6 +2358,238 @@
                 const removeBtn = container.querySelector('.btn-outline-danger');
                 if (removeBtn) removeBtn.style.display = 'none';
             });
+        }
+
+        // ===========================================
+        // BUCKET VISUALIZATION FUNCTIONS
+        // ===========================================
+
+        let currentCategories = {};
+        let selectedCategory = null;
+
+        // Load bucket statistics and categories
+        async function loadBucketVisualization() {
+            try {
+                // Load stats
+                const statsResponse = await fetch('/admin/api/buckets/stats');
+                const statsData = await statsResponse.json();
+                
+                if (statsData.success) {
+                    displayBucketStats(statsData.stats);
+                }
+
+                // Load categories
+                const categoriesResponse = await fetch('/admin/api/buckets/categories');
+                const categoriesData = await categoriesResponse.json();
+                
+                if (categoriesData.success) {
+                    currentCategories = categoriesData.categories;
+                    displayCategories(categoriesData.categories);
+                }
+            } catch (error) {
+                console.error('Error loading bucket visualization:', error);
+                document.getElementById('bucketStats').innerHTML = `
+                    <div class="col-md-12">
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle me-2"></i>Error loading bucket data
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Display bucket statistics
+        function displayBucketStats(stats) {
+            const statsHtml = `
+                <div class="col-md-3">
+                    <div class="card text-center" style="background: rgba(59,130,246,0.2); border: 1px solid rgba(59,130,246,0.3);">
+                        <div class="card-body">
+                            <h3 class="mb-0" style="color: #60a5fa;">${stats.totalRecords}</h3>
+                            <small style="color: rgba(255,255,255,0.7);">Total Records</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center" style="background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.3);">
+                        <div class="card-body">
+                            <h3 class="mb-0" style="color: #34d399;">${stats.bucketCounts.diagnosis}</h3>
+                            <small style="color: rgba(255,255,255,0.7);">Diagnosis Buckets</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center" style="background: rgba(245,158,11,0.2); border: 1px solid rgba(245,158,11,0.3);">
+                        <div class="card-body">
+                            <h3 class="mb-0" style="color: #fbbf24;">${stats.bucketCounts.symptom}</h3>
+                            <small style="color: rgba(255,255,255,0.7);">Symptom Buckets</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center" style="background: rgba(139,92,246,0.2); border: 1px solid rgba(139,92,246,0.3);">
+                        <div class="card-body">
+                            <h3 class="mb-0" style="color: #a78bfa;">${stats.bucketCounts.bodyPart}</h3>
+                            <small style="color: rgba(255,255,255,0.7);">Body Part Buckets</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('bucketStats').innerHTML = statsHtml;
+        }
+
+        // Display category list
+        function displayCategories(categories) {
+            const categoryList = document.getElementById('categoryList');
+            let html = '';
+
+            for (const [key, category] of Object.entries(categories)) {
+                if (category.count > 0) {
+                    html += `
+                        <a href="javascript:void(0)" 
+                           class="list-group-item list-group-item-action category-item"
+                           data-category="${key}"
+                           onclick="selectCategory('${key}')"
+                           style="background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); color: white; margin-bottom: 8px; border-radius: 8px;">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="${category.icon} me-2"></i>
+                                    <strong>${category.name}</strong>
+                                </div>
+                                <span class="badge bg-primary rounded-pill">${category.count}</span>
+                            </div>
+                        </a>
+                    `;
+                }
+            }
+
+            categoryList.innerHTML = html;
+        }
+
+        // Select a category
+        function selectCategory(categoryKey) {
+            selectedCategory = categoryKey;
+            
+            // Highlight selected category
+            document.querySelectorAll('.category-item').forEach(item => {
+                item.style.background = 'rgba(59,130,246,0.1)';
+                item.style.borderLeft = '3px solid transparent';
+            });
+            
+            const selectedItem = document.querySelector(`[data-category="${categoryKey}"]`);
+            if (selectedItem) {
+                selectedItem.style.background = 'rgba(59,130,246,0.3)';
+                selectedItem.style.borderLeft = '3px solid #60a5fa';
+            }
+
+            // Display buckets for this category
+            displayBuckets(categoryKey);
+            
+            // Clear block list
+            document.getElementById('blockList').innerHTML = `
+                <div class="empty-state text-center py-5" style="color: rgba(255,255,255,0.5);">
+                    <i class="bi bi-arrow-left" style="font-size: 2rem;"></i>
+                    <p class="mt-3 mb-0">Select a bucket to view block indices</p>
+                </div>
+            `;
+        }
+
+        // Display buckets in a category
+        function displayBuckets(categoryKey) {
+            const category = currentCategories[categoryKey];
+            const bucketList = document.getElementById('bucketList');
+            
+            if (!category || category.buckets.length === 0) {
+                bucketList.innerHTML = `
+                    <div class="empty-state text-center py-5" style="color: rgba(255,255,255,0.5);">
+                        <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                        <p class="mt-3 mb-0">No buckets in this category</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div class="list-group">';
+            
+            category.buckets.forEach(bucketName => {
+                html += `
+                    <a href="javascript:void(0)" 
+                       class="list-group-item list-group-item-action bucket-item"
+                       onclick="selectBucket('${categoryKey}', '${bucketName}')"
+                       style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: white; margin-bottom: 6px; border-radius: 6px;">
+                        <i class="bi bi-box me-2"></i>${bucketName}
+                    </a>
+                `;
+            });
+            
+            html += '</div>';
+            bucketList.innerHTML = html;
+        }
+
+        // Select a bucket and display block indices
+        async function selectBucket(categoryKey, bucketName) {
+            // Highlight selected bucket
+            document.querySelectorAll('.bucket-item').forEach(item => {
+                item.style.background = 'rgba(16,185,129,0.1)';
+                item.style.borderLeft = '3px solid transparent';
+            });
+            
+            event.target.closest('.bucket-item').style.background = 'rgba(16,185,129,0.3)';
+            event.target.closest('.bucket-item').style.borderLeft = '3px solid #34d399';
+
+            // Load block indices
+            try {
+                const response = await fetch(`/admin/api/buckets/${categoryKey}/${bucketName}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayBlockIndices(data);
+                }
+            } catch (error) {
+                console.error('Error loading block indices:', error);
+                document.getElementById('blockList').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>Error loading blocks
+                    </div>
+                `;
+            }
+        }
+
+        // Display block indices
+        function displayBlockIndices(data) {
+            const blockList = document.getElementById('blockList');
+            
+            if (data.records.length === 0) {
+                blockList.innerHTML = `
+                    <div class="empty-state text-center py-5" style="color: rgba(255,255,255,0.5);">
+                        <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                        <p class="mt-3 mb-0">No blocks in this bucket</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0" style="color: #a78bfa;">
+                            <i class="bi bi-info-circle me-2"></i>${data.bucketName}
+                        </h6>
+                        <span class="badge bg-secondary">${data.count} blocks</span>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+            `;
+
+            data.records.forEach(blockIndex => {
+                html += `
+                    <span class="badge bg-primary" style="font-size: 0.9rem; padding: 6px 12px;">
+                        Block #${blockIndex}
+                    </span>
+                `;
+            });
+
+            html += '</div>';
+            blockList.innerHTML = html;
         }
 
         console.log('🚀 Dashboard initializing...');
