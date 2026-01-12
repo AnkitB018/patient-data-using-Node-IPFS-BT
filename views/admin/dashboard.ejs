@@ -877,18 +877,29 @@
                                 <label class="form-label">
                                     <i class="bi bi-file-earmark-medical me-2"></i>File Type
                                 </label>
-                                <select class="form-select" id="ga_file_type">
-                                    <option value="">All File Types</option>
-                                    <option value="Blood Test">Blood Test</option>
-                                    <option value="X-Ray">X-Ray</option>
-                                    <option value="MRI Scan">MRI Scan</option>
-                                    <option value="CT Scan">CT Scan</option>
-                                    <option value="Prescription">Prescription</option>
-                                    <option value="Lab Report">Lab Report</option>
-                                    <option value="Medical Certificate">Medical Certificate</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                                <small class="text-muted">Optional: Select specific file type for exact matching</small>
+                                <input type="text" class="form-control" id="ga_file_type" 
+                                       list="adminGaFileTypeOptions" placeholder="All file types or type specific">
+                                <datalist id="adminGaFileTypeOptions">
+                                    <option value="">
+                                    <option value="Blood Test">
+                                    <option value="X-Ray">
+                                    <option value="MRI Scan">
+                                    <option value="CT Scan">
+                                    <option value="Ultrasound">
+                                    <option value="ECG">
+                                    <option value="EEG">
+                                    <option value="PET Scan">
+                                    <option value="Prescription">
+                                    <option value="Lab Report">
+                                    <option value="Pathology Report">
+                                    <option value="Discharge Summary">
+                                    <option value="Medical Certificate">
+                                    <option value="Vaccination Record">
+                                    <option value="Operation Notes">
+                                    <option value="Biopsy Report">
+                                    <option value="Other">
+                                </datalist>
+                                <small class="text-muted">Optional: Select or type specific file type for exact matching</small>
                             </div>
                         </div>
 
@@ -2736,57 +2747,133 @@
                             Generation ${gen.generation}
                             ${gen.isCrossover ? '<span style="font-size: 0.8rem; margin-left: 10px; padding: 4px 12px; background: rgba(245,158,11,0.2); border-radius: 6px;">After Crossover</span>' : ''}
                         </h5>
-                        
-                        <div class="row">
+            `;
+            
+            // Show initial sampling if present (100 records sampled)
+            if (gen.initialSampling && gen.initialSampling.length > 0) {
+                html += `
+                    <div style="background: rgba(59,130,246,0.05); border-radius: 10px; padding: 15px; margin-bottom: 15px;">
+                        <h6 style="color: #3b82f6; margin-bottom: 10px;">
+                            <i class="bi bi-1-circle me-2"></i>
+                            Step 1: Initial Sampling (100 records per population)
+                        </h6>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            ${gen.initialSampling.map(pop => `
+                                <div style="flex: 1; min-width: 150px; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+                                    <div style="color: #60a5fa; font-weight: bold; text-align: center; margin-bottom: 8px;">
+                                        Pop ${pop.populationIndex}
+                                    </div>
+                                    <div style="text-align: center; color: rgba(255,255,255,0.7); font-size: 0.85rem;">
+                                        ${pop.totalSampled} records
+                                    </div>
+                                    <div style="font-size: 0.7rem; color: rgba(255,255,255,0.5); margin-top: 8px;">
+                                        ${pop.sampleRecords.slice(0, 2).map(r => `
+                                            <div style="padding: 4px; background: rgba(255,255,255,0.05); border-radius: 4px; margin-bottom: 4px;">
+                                                #${r.blockIndex} - ${r.diagnosis.substring(0, 15)}...
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div style="text-align: center; margin: 15px 0;">
+                        <i class="bi bi-arrow-down" style="font-size: 1.5rem; color: rgba(59,130,246,0.4);"></i>
+                    </div>
+                `;
+            }
+            
+            // Show fitness evaluation if present (with individual fitness scores)
+            if (gen.fitnessEvaluation && gen.fitnessEvaluation.length > 0) {
+                html += `
+                    <div style="background: rgba(16,185,129,0.05); border-radius: 10px; padding: 15px; margin-bottom: 15px;">
+                        <h6 style="color: #10b981; margin-bottom: 10px;">
+                            <i class="bi bi-2-circle me-2"></i>
+                            Step 2: Fitness Evaluation (Record-specific scores)
+                        </h6>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            ${gen.fitnessEvaluation.map(pop => `
+                                <div style="flex: 1; min-width: 150px; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+                                    <div style="color: #34d399; font-weight: bold; text-align: center; margin-bottom: 8px;">
+                                        Pop ${pop.populationIndex}
+                                    </div>
+                                    <div style="text-align: center; font-size: 1.2rem; color: #10b981; font-weight: bold; margin-bottom: 8px;">
+                                        Top: ${pop.topFitness}%
+                                    </div>
+                                    <div style="font-size: 0.7rem; color: rgba(255,255,255,0.6);">
+                                        ${pop.sampleRecords.slice(0, 3).map(r => `
+                                            <div style="padding: 4px; background: rgba(16,185,129,0.1); border-radius: 4px; margin-bottom: 4px;">
+                                                #${r.blockIndex}: <span style="color: #10b981; font-weight: bold;">${r.fitness}%</span>
+                                                <div style="font-size: 0.65rem; color: rgba(255,255,255,0.4);">${r.diagnosis.substring(0, 20)}...</div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div style="text-align: center; margin: 15px 0;">
+                        <i class="bi bi-arrow-down" style="font-size: 1.5rem; color: rgba(16,185,129,0.4);"></i>
+                    </div>
+                `;
+            }
+            
+            // Show final selection (top 50 kept)
+            html += `
+                <div style="background: rgba(245,158,11,0.05); border-radius: 10px; padding: 15px;">
+                    <h6 style="color: #f59e0b; margin-bottom: 10px;">
+                        <i class="bi bi-3-circle me-2"></i>
+                        Step 3: Selection (Top ${gen.populations[0]?.size || 50} kept based on fitness)
+                    </h6>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
             `;
             
             gen.populations.forEach(pop => {
                 html += `
-                    <div class="col-md-${12 / Math.min(5, gen.populations.length)}" style="margin-bottom: 20px;">
-                        <div style="background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); border-radius: 10px; padding: 15px; height: 100%;">
-                            <div style="color: #3b82f6; font-weight: bold; margin-bottom: 10px; text-align: center;">
-                                Population ${pop.populationIndex}
-                            </div>
-                            <div style="text-align: center; font-size: 1.5rem; color: #10b981; font-weight: bold; margin-bottom: 10px;">
-                                ${pop.topFitness}%
-                            </div>
-                            <div style="text-align: center; color: rgba(255,255,255,0.5); font-size: 0.85rem; margin-bottom: 15px;">
-                                Size: ${pop.size} records
-                            </div>
-                            
-                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.7);">
-                                <strong>Top Records:</strong>
-                                ${pop.sampleRecords.slice(0, 3).map(r => `
-                                    <div style="margin-top: 8px; padding: 6px; background: rgba(255,255,255,0.05); border-radius: 5px;">
-                                        <div style="color: #10b981;">Block #${r.blockIndex} (${r.fitness}%)</div>
-                                        <div style="color: rgba(255,255,255,0.5); font-size: 0.7rem;">${r.diagnosis}</div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                            
-                            ${pop.neighborhoodBuckets.length > 0 ? `
-                                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
-                                    <div style="color: rgba(255,255,255,0.6); font-size: 0.75rem; margin-bottom: 5px;">
-                                        <i class="bi bi-compass me-1"></i>Neighborhood:
-                                    </div>
-                                    <div style="display: flex; flex-wrap: wrap; gap: 5px;">
-                                        ${pop.neighborhoodBuckets.slice(0, 3).map(bucket => `
-                                            <span style="background: rgba(59,130,246,0.2); padding: 2px 8px; border-radius: 4px; font-size: 0.65rem; color: #3b82f6;">
-                                                ${bucket.split(':')[1] || bucket}
-                                            </span>
-                                        `).join('')}
-                                    </div>
-                                </div>
-                            ` : ''}
+                    <div style="flex: 1; min-width: 150px; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+                        <div style="color: #fbbf24; font-weight: bold; text-align: center; margin-bottom: 8px;">
+                            Pop ${pop.populationIndex}
                         </div>
+                        <div style="text-align: center; font-size: 1.3rem; color: #10b981; font-weight: bold; margin-bottom: 8px;">
+                            ${pop.topFitness}%
+                        </div>
+                        <div style="text-align: center; color: rgba(255,255,255,0.5); font-size: 0.8rem; margin-bottom: 10px;">
+                            ${pop.size} records
+                        </div>
+                        
+                        <div style="font-size: 0.7rem; color: rgba(255,255,255,0.6);">
+                            <strong style="font-size: 0.75rem;">Top 3:</strong>
+                            ${pop.sampleRecords.slice(0, 3).map(r => `
+                                <div style="margin-top: 6px; padding: 5px; background: rgba(255,255,255,0.05); border-radius: 4px;">
+                                    <div style="color: #10b981;">#${r.blockIndex} (${r.fitness}%)</div>
+                                    <div style="color: rgba(255,255,255,0.4); font-size: 0.65rem;">${r.diagnosis.substring(0, 25)}...</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        ${pop.neighborhoodBuckets.length > 0 ? `
+                            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
+                                <div style="color: rgba(255,255,255,0.5); font-size: 0.7rem; margin-bottom: 5px;">
+                                    <i class="bi bi-compass me-1"></i>Top Neighborhoods:
+                                </div>
+                                <div style="display: flex; flex-wrap: wrap; gap: 3px;">
+                                    ${pop.neighborhoodBuckets.slice(0, 2).map(bucket => `
+                                        <span style="background: rgba(59,130,246,0.2); padding: 2px 6px; border-radius: 3px; font-size: 0.6rem; color: #3b82f6;">
+                                            ${bucket.split(':')[1] || bucket}
+                                        </span>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
                     </div>
                 `;
             });
             
             html += `
-                        </div>
                     </div>
                 </div>
+            </div>
+            </div>
             `;
             
             if (showArrow) {

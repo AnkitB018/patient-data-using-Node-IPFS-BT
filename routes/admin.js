@@ -545,12 +545,6 @@ router.get('/api/buckets/categories', async (req, res) => {
                 count: Object.keys(allBuckets.gender).length,
                 buckets: Object.keys(allBuckets.gender).sort()
             },
-            status: {
-                name: 'Status',
-                icon: 'bi-check-circle',
-                count: Object.keys(allBuckets.status).length,
-                buckets: Object.keys(allBuckets.status).sort()
-            },
             leftover: {
                 name: 'Leftover',
                 icon: 'bi-inbox',

@@ -273,17 +273,28 @@
                     <label class="form-label" for="file_type">
                         <i class="bi bi-file-earmark-medical me-1"></i>File Type *
                     </label>
-                    <select class="form-select" id="file_type" name="file_type" required>
-                        <option value="">Select Type</option>
-                        <option value="Blood Test">Blood Test</option>
-                        <option value="X-Ray">X-Ray</option>
-                        <option value="MRI Scan">MRI Scan</option>
-                        <option value="CT Scan">CT Scan</option>
-                        <option value="Prescription">Prescription</option>
-                        <option value="Lab Report">Lab Report</option>
-                        <option value="Medical Certificate">Medical Certificate</option>
-                        <option value="Other">Other</option>
-                    </select>
+                    <input type="text" class="form-control" id="file_type" name="file_type" 
+                           list="fileTypeOptions" placeholder="Select or type file type" required>
+                    <datalist id="fileTypeOptions">
+                        <option value="Blood Test">
+                        <option value="X-Ray">
+                        <option value="MRI Scan">
+                        <option value="CT Scan">
+                        <option value="Ultrasound">
+                        <option value="ECG">
+                        <option value="EEG">
+                        <option value="PET Scan">
+                        <option value="Prescription">
+                        <option value="Lab Report">
+                        <option value="Pathology Report">
+                        <option value="Discharge Summary">
+                        <option value="Medical Certificate">
+                        <option value="Vaccination Record">
+                        <option value="Operation Notes">
+                        <option value="Biopsy Report">
+                        <option value="Other">
+                    </datalist>
+                    <small class="text-muted">Select from dropdown or type custom file type</small>
                 </div>
                 <div class="col-md-6 form-group">
                     <label class="form-label" for="disease">

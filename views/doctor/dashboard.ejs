@@ -336,16 +336,28 @@
                         </div>
                         <div class="col-md-6 form-group">
                             <label class="form-label">File Type *</label>
-                            <select class="form-select" name="file_type" required>
-                                <option value="">Select Type</option>
-                                <option value="Blood Test">Blood Test</option>
-                                <option value="X-Ray">X-Ray</option>
-                                <option value="MRI Scan">MRI Scan</option>
-                                <option value="CT Scan">CT Scan</option>
-                                <option value="Prescription">Prescription</option>
-                                <option value="Lab Report">Lab Report</option>
-                                <option value="Other">Other</option>
-                            </select>
+                            <input type="text" class="form-control" name="file_type" 
+                                   list="uploadFileTypeOptions" placeholder="Select or type file type" required>
+                            <datalist id="uploadFileTypeOptions">
+                                <option value="Blood Test">
+                                <option value="X-Ray">
+                                <option value="MRI Scan">
+                                <option value="CT Scan">
+                                <option value="Ultrasound">
+                                <option value="ECG">
+                                <option value="EEG">
+                                <option value="PET Scan">
+                                <option value="Prescription">
+                                <option value="Lab Report">
+                                <option value="Pathology Report">
+                                <option value="Discharge Summary">
+                                <option value="Medical Certificate">
+                                <option value="Vaccination Record">
+                                <option value="Operation Notes">
+                                <option value="Biopsy Report">
+                                <option value="Other">
+                            </datalist>
+                            <small class="text-muted">Select from dropdown or type custom type</small>
                         </div>
                     </div>
                     
@@ -721,18 +733,29 @@
                             <label class="form-label">
                                 <i class="bi bi-file-earmark-medical me-2"></i>File Type
                             </label>
-                            <select class="form-select" id="ga_file_type">
-                                <option value="">All File Types</option>
-                                <option value="Blood Test">Blood Test</option>
-                                <option value="X-Ray">X-Ray</option>
-                                <option value="MRI Scan">MRI Scan</option>
-                                <option value="CT Scan">CT Scan</option>
-                                <option value="Prescription">Prescription</option>
-                                <option value="Lab Report">Lab Report</option>
-                                <option value="Medical Certificate">Medical Certificate</option>
-                                <option value="Other">Other</option>
-                            </select>
-                            <small class="text-muted">Optional: Select specific file type for exact matching</small>
+                            <input type="text" class="form-control" id="ga_file_type" 
+                                   list="gaFileTypeOptions" placeholder="All file types or type specific">
+                            <datalist id="gaFileTypeOptions">
+                                <option value="">
+                                <option value="Blood Test">
+                                <option value="X-Ray">
+                                <option value="MRI Scan">
+                                <option value="CT Scan">
+                                <option value="Ultrasound">
+                                <option value="ECG">
+                                <option value="EEG">
+                                <option value="PET Scan">
+                                <option value="Prescription">
+                                <option value="Lab Report">
+                                <option value="Pathology Report">
+                                <option value="Discharge Summary">
+                                <option value="Medical Certificate">
+                                <option value="Vaccination Record">
+                                <option value="Operation Notes">
+                                <option value="Biopsy Report">
+                                <option value="Other">
+                            </datalist>
+                            <small class="text-muted">Optional: Select or type specific file type for exact matching</small>
                         </div>
                     </div>
 

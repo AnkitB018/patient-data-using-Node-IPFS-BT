@@ -21,7 +21,50 @@ export function initializeVisualization() {
 }
 
 /**
- * Capture generation snapshot
+ * Capture initial population sampling (before fitness calculation)
+ */
+export function captureInitialSampling(populationIndex, sampledRecords, allBlocks, ipfsCache) {
+    return {
+        populationIndex: populationIndex + 1,
+        totalSampled: sampledRecords.length,
+        sampleRecords: sampledRecords.slice(0, 4).map(blockIndex => {
+            const block = allBlocks.find(b => b.block_index === blockIndex);
+            const ipfsData = ipfsCache.get(blockIndex);
+            return {
+                blockIndex,
+                diagnosis: ipfsData?.primary_diagnosis || 'N/A',
+                patientId: block?.patient_id || 'N/A'
+            };
+        })
+    };
+}
+
+/**
+ * Capture fitness-evaluated population (after fitness, before selection)
+ */
+export function captureFitnessEvaluation(populationIndex, population, fitnessMap, allBlocks, ipfsCache) {
+    const recordsWithFitness = population.map(blockIndex => ({
+        blockIndex,
+        fitness: fitnessMap.get(blockIndex) || 0,
+        block: allBlocks.find(b => b.block_index === blockIndex),
+        ipfsData: ipfsCache.get(blockIndex)
+    })).sort((a, b) => b.fitness - a.fitness);
+    
+    return {
+        populationIndex: populationIndex + 1,
+        totalRecords: population.length,
+        sampleRecords: recordsWithFitness.slice(0, 4).map(r => ({
+            blockIndex: r.blockIndex,
+            fitness: r.fitness.toFixed(2),
+            diagnosis: r.ipfsData?.primary_diagnosis || 'N/A',
+            patientId: r.block?.patient_id || 'N/A'
+        })),
+        topFitness: recordsWithFitness[0]?.fitness.toFixed(2) || '0.00'
+    };
+}
+
+/**
+ * Capture generation snapshot (after selection)
  */
 export function captureGenerationSnapshot(
     generationNumber,
@@ -30,15 +73,19 @@ export function captureGenerationSnapshot(
     neighborhoods,
     allBlocks,
     ipfsCache,
-    isCrossover = false
+    isCrossover = false,
+    initialSampling = null,
+    fitnessEvaluation = null
 ) {
     const snapshot = {
         generation: generationNumber,
         isCrossover: isCrossover,
+        initialSampling: initialSampling || null,
+        fitnessEvaluation: fitnessEvaluation || null,
         populations: []
     };
     
-    // Capture each population
+    // Capture each population (after selection to top 50)
     populations.forEach((population, popIndex) => {
         // Get top 4 records from this population by fitness
         const populationRecords = population
@@ -65,7 +112,6 @@ export function captureGenerationSnapshot(
                 blockIndex: r.blockIndex,
                 fitness: r.fitness.toFixed(2),
                 diagnosis: r.ipfsData?.primary_diagnosis || 'N/A',
-                fileType: r.block?.file_type || 'N/A',
                 patientId: r.block?.patient_id || 'N/A'
             })),
             neighborhoodBuckets: neighborhoodBuckets.slice(0, 5) // Top 5 buckets

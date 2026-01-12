@@ -7,6 +7,8 @@ import { getAllBlocks } from './dbHelper.js';
 import { fetchFromIPFS } from './ipfsHelper.js';
 import { getAllBuckets, getRelevantBuckets } from './bucketManager.js';import {
     initializeVisualization,
+    captureInitialSampling,
+    captureFitnessEvaluation,
     captureGenerationSnapshot,
     captureCrossover,
     captureRefinementGeneration,
@@ -230,9 +232,6 @@ function sampleRandomRecords(allBlocks, count, exploredSet) {
  * Multi-population Genetic Algorithm with bucket-based neighborhood search
  */
 export async function multiPopulationGA(searchCriteria, topN = 10) {
-    console.log('\n🧬 Starting Multi-Population Genetic Algorithm');
-    console.log('Search Criteria:', searchCriteria);
-    
     const startTime = Date.now();
     
     // Initialize visualization capture
@@ -248,11 +247,8 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
     const allBuckets = getAllBuckets();
     const totalRecords = allBlocks.filter(b => b.block_index !== 0).length;
     
-    console.log(`📊 Total records available: ${totalRecords}`);
-    
     // Get relevant buckets from search criteria
     const relevantBuckets = getRelevantBuckets(searchCriteria);
-    console.log(`🎯 Relevant buckets: ${relevantBuckets.length > 0 ? relevantBuckets.join(', ') : 'None'}`);
     
     // Initialize 5 populations
     const NUM_POPULATIONS = 5;
@@ -264,6 +260,10 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
     // GENERATION 1: Initialize populations
     // ========================================
     console.log('\n📍 GEN 1: Initializing populations');
+    
+    // Track initial sampling and fitness evaluation for visualization
+    const gen1InitialSampling = [];
+    const gen1FitnessEvaluation = [];
     
     for (let popIndex = 0; popIndex < NUM_POPULATIONS; popIndex++) {
         const population = populations[popIndex];
@@ -282,20 +282,11 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
         population.push(...randomSamples);
         randomSamples.forEach(idx => exploredSet.add(idx)); // Add to Set immediately to prevent duplicates
         
-        console.log(`  Population ${popIndex + 1}: ${population.length} records (all unique)`);
+        // Capture initial sampling (before fitness)
+        gen1InitialSampling.push(captureInitialSampling(popIndex, population, allBlocks, ipfsCache));
     }
-    
-    // VERIFICATION: Ensure no duplicates across populations
-    const allPopulationRecords = populations.flat();
-    const uniqueCount = new Set(allPopulationRecords).size;
-    if (uniqueCount !== allPopulationRecords.length) {
-        console.warn(`⚠️  WARNING: Duplicate detected! Total: ${allPopulationRecords.length}, Unique: ${uniqueCount}`);
-    }
-    console.log(`✓ Total unique records in populations: ${uniqueCount}`);
-    console.log(`✓ Total records in exploredSet: ${exploredSet.size}/${totalRecords}`);
     
     // Evaluate fitness for all records in Gen 1
-    console.log('  Evaluating fitness...');
     let evaluationCount = 0;
     for (const population of populations) {
         for (const blockIndex of population) {
@@ -315,13 +306,16 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
                 
                 const fitness = calculateFitness(block, ipfsData, searchCriteria);
                 fitnessMap.set(blockIndex, fitness); // Map ensures each record evaluated only once
-            } else {
-                // This should never happen in Gen 1, but log if it does
-                console.warn(`⚠️  Block #${blockIndex} already evaluated (fitness: ${fitnessMap.get(blockIndex).toFixed(2)}%)`);
             }
         }
     }
-    console.log(`✓ Evaluated ${evaluationCount} unique records (total in Map: ${fitnessMap.size})`);
+    
+    // Capture fitness evaluation (before selection to top 50)
+    for (let popIndex = 0; popIndex < NUM_POPULATIONS; popIndex++) {
+        gen1FitnessEvaluation.push(
+            captureFitnessEvaluation(popIndex, populations[popIndex], fitnessMap, allBlocks, ipfsCache)
+        );
+    }
     
     // Remove bottom 50 from each population
     for (let popIndex = 0; popIndex < NUM_POPULATIONS; popIndex++) {
@@ -332,28 +326,36 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
     // Calculate neighborhoods
     for (let popIndex = 0; popIndex < NUM_POPULATIONS; popIndex++) {
         neighborhoods[popIndex] = calculateNeighborhood(populations[popIndex], fitnessMap, allBuckets);
-        console.log(`  Population ${popIndex + 1} neighborhood: ${neighborhoods[popIndex].length} buckets`);
     }
     
-    // Capture Generation 1 snapshot
+    // Capture Generation 1 snapshot (with initial sampling and fitness evaluation)
     vizData.generations.push(
-        captureGenerationSnapshot(1, populations, fitnessMap, neighborhoods, allBlocks, ipfsCache, false)
+        captureGenerationSnapshot(1, populations, fitnessMap, neighborhoods, allBlocks, ipfsCache, false, gen1InitialSampling, gen1FitnessEvaluation)
     );
     
-    // Check for 85% fitness
+    // Check for 85% fitness in Gen 1
     let bestFitness = Math.max(...Array.from(fitnessMap.values()));
-    console.log(`  Best fitness: ${bestFitness.toFixed(2)}%`);
+    let foundHighFitness = false;
+    let highFitnessRecord = null;
+    
+    // Find the record with best fitness if >= 85%
+    if (bestFitness >= 85) {
+        for (const [blockIndex, fitness] of fitnessMap.entries()) {
+            if (fitness >= 85) {
+                foundHighFitness = true;
+                highFitnessRecord = blockIndex;
+                break;
+            }
+        }
+    }
     
     // ========================================
     // GENERATIONS 2+
     // ========================================
     let generation = 2;
-    let foundHighFitness = false;
-    let highFitnessRecord = null;
     
+    // If already found 85%+ in Gen 1, skip to refinement
     while (generation <= 50 && exploredSet.size < totalRecords && !foundHighFitness) {
-        console.log(`\n📍 GEN ${generation}:`);
-        
         const genStartSize = exploredSet.size;
         let genEvaluations = 0;
         
@@ -369,12 +371,7 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
             const newRecords = [...neighborhoodSamples, ...randomSamples];
             
             // CRITICAL: Mark as explored BEFORE adding to population to prevent cross-population duplicates
-            newRecords.forEach(idx => {
-                if (exploredSet.has(idx)) {
-                    console.warn(`⚠️  WARNING: Block #${idx} already in exploredSet!`);
-                }
-                exploredSet.add(idx);
-            });
+            newRecords.forEach(idx => exploredSet.add(idx));
             population.push(...newRecords);
             
             // Evaluate fitness for new records ONLY
@@ -394,18 +391,20 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
                     }
                     
                     const fitness = calculateFitness(block, ipfsData, searchCriteria);
-                    fitnessMap.set(blockIndex, fitness); // Map ensures no re-evaluation
+                    fitnessMap.set(blockIndex, fitness);
                     
-                    // Check for 85%+ fitness
+                    // Check for 85%+ fitness - STOP IMMEDIATELY
                     if (fitness >= 85 && !foundHighFitness) {
                         foundHighFitness = true;
                         highFitnessRecord = blockIndex;
-                        console.log(`  🎯 Found ${fitness.toFixed(2)}% fitness record (Block #${blockIndex})`);
+                        break; // Exit fitness evaluation loop
                     }
-                } else {
-                    // Should never happen - log if it does
-                    console.warn(`⚠️  Block #${blockIndex} already evaluated! Fitness: ${fitnessMap.get(blockIndex).toFixed(2)}%`);
                 }
+            }
+            
+            // If high fitness found, stop processing other populations
+            if (foundHighFitness) {
+                break;
             }
             
             // Sort and keep top 50
@@ -413,22 +412,17 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
             populations[popIndex] = population.slice(0, 50);
         }
         
-        const genNewRecords = exploredSet.size - genStartSize;
-        console.log(`  New unique records this gen: ${genNewRecords}`);
-        console.log(`  Fitness evaluations this gen: ${genEvaluations}`);
-        console.log(`  Total explored: ${exploredSet.size}/${totalRecords} (${((exploredSet.size/totalRecords)*100).toFixed(1)}%)`);
-        console.log(`  Total in fitnessMap: ${fitnessMap.size}`);
-        bestFitness = Math.max(...Array.from(fitnessMap.values()));
-        console.log(`  Best fitness: ${bestFitness.toFixed(2)}%`);
+        // If high fitness found, exit generation loop
+        if (foundHighFitness) {
+            break;
+        }
         
         // Crossover every 2 generations
         if (generation % 2 === 0) {
-            console.log('  🔄 Performing crossover...');
-            
             // Capture crossover operation for visualization
             const crossoverExchanges = [];
             
-            // Store records to exchange
+            // Store records to exchange FROM each population
             const toExchange = [];
             for (let popIndex = 0; popIndex < NUM_POPULATIONS; popIndex++) {
                 const currentPop = populations[popIndex];
@@ -438,16 +432,16 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
                 toExchange.push(records);
             }
             
-            // Exchange circularly: pop1→pop2, pop2→pop3, pop3→pop4, pop4→pop5, pop5→pop1
+            // Exchange circularly: pop0 receives from pop4, pop1 from pop0, etc.
             for (let popIndex = 0; popIndex < NUM_POPULATIONS; popIndex++) {
                 const currentPop = populations[popIndex];
-                const nextPopIndex = (popIndex + 1) % NUM_POPULATIONS;
-                const receivedRecords = toExchange[popIndex];
+                const prevPopIndex = (popIndex - 1 + NUM_POPULATIONS) % NUM_POPULATIONS;
+                const receivedRecords = toExchange[prevPopIndex]; // Receive from PREVIOUS population
                 
                 // Track crossover for visualization
                 crossoverExchanges.push({
-                    from: popIndex,
-                    to: nextPopIndex,
+                    from: prevPopIndex,
+                    to: popIndex,
                     ranks: [2, 4, 6, 8, 10]
                 });
                 
@@ -476,20 +470,12 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
         );
         
         generation++;
-        
-        // Stop if found high fitness
-        if (foundHighFitness) {
-            console.log('  ✓ High fitness record found, will run refinement generation');
-            break;
-        }
     }
     
     // ========================================
     // REFINEMENT GENERATION (if 85%+ found)
     // ========================================
     if (foundHighFitness && highFitnessRecord) {
-        console.log(`\n📍 REFINEMENT GEN: Searching neighborhood of Block #${highFitnessRecord}`);
-        
         // Find which buckets this record belongs to
         const refinementBuckets = [];
         for (const [categoryName, categoryBuckets] of Object.entries(allBuckets)) {
@@ -501,26 +487,13 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
             }
         }
         
-        console.log(`  Refinement buckets: ${refinementBuckets.length} found`);
-        
-        const beforeRefinement = exploredSet.size;
-        
         // Sample heavily from these buckets (only unexplored records)
         const refinementSamples = sampleFromNeighborhood(refinementBuckets, allBuckets, 100, exploredSet);
-        refinementSamples.forEach(idx => {
-            if (exploredSet.has(idx)) {
-                console.warn(`⚠️  Refinement: Block #${idx} already explored!`);
-            }
-            exploredSet.add(idx);
-        });
-        
-        console.log(`  Sampled ${refinementSamples.length} new unique records for refinement`);
+        refinementSamples.forEach(idx => exploredSet.add(idx));
         
         // Evaluate these records
-        let refinementEvals = 0;
         for (const blockIndex of refinementSamples) {
             if (!fitnessMap.has(blockIndex)) {
-                refinementEvals++;
                 const block = allBlocks.find(b => b.block_index === blockIndex);
                 let ipfsData = ipfsCache.get(blockIndex);
                 
@@ -535,12 +508,8 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
                 
                 const fitness = calculateFitness(block, ipfsData, searchCriteria);
                 fitnessMap.set(blockIndex, fitness);
-            } else {
-                console.warn(`⚠️  Refinement: Block #${blockIndex} already evaluated!`);
             }
         }
-        
-        console.log(`  Refinement evaluated ${refinementEvals} new records (${refinementSamples.length - refinementEvals} already in cache)`);
         
         // Capture refinement generation
         const triggerBlock = allBlocks.find(b => b.block_index === highFitnessRecord);
@@ -562,17 +531,10 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
     // ========================================
     // COLLECT TOP N RESULTS
     // ========================================
-    console.log('\n📊 Collecting results...');
-    
     // Get all evaluated records sorted by fitness
     const allEvaluated = Array.from(fitnessMap.entries())
         .sort((a, b) => b[1] - a[1])
         .slice(0, topN);
-    
-    console.log('📋 Top evaluated records from fitnessMap:');
-    allEvaluated.slice(0, 3).forEach(([idx, fit]) => {
-        console.log(`   Block #${idx}: ${fit.toFixed(2)}%`);
-    });
     
     const results = [];
     for (const [blockIndex, fitness] of allEvaluated) {
@@ -597,17 +559,6 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
     
     // Save visualization data for last run
     saveVisualizationData(vizData);
-    
-    console.log(`\n✅ Algorithm Complete!`);
-    console.log(`   Generations: ${generation - 1}`);
-    console.log(`   Records Evaluated: ${exploredSet.size}/${totalRecords}`);
-    console.log(`   Duration: ${duration}s`);
-    console.log(`   Top Fitness: ${results[0]?.fitness.toFixed(2)}%`);
-    
-    console.log('\n📤 First 3 results being returned:');
-    results.slice(0, 3).forEach(r => {
-        console.log(`   Block #${r.block_index}: fitness=${r.fitness}, patient=${r.patient_id}`);
-    });
     
     return {
         success: true,

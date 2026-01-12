@@ -23,26 +23,63 @@ import { fetchFromIPFS } from './ipfsHelper.js';
 
 const DIAGNOSIS_CATEGORIES = {
     'diabetes': ['diabetes', 'diabetic', 'glucose', 'insulin', 'hyperglycemia', 'type 1', 'type 2', 'dm'],
-    'cardiac': ['cardiac', 'heart', 'cardiovascular', 'coronary', 'myocardial', 'angina', 'arrhythmia', 'hypertension'],
-    'respiratory': ['respiratory', 'pulmonary', 'lung', 'asthma', 'copd', 'pneumonia', 'bronchitis', 'breathing'],
-    'neurological': ['neurological', 'neuro', 'brain', 'stroke', 'seizure', 'epilepsy', 'migraine', 'alzheimer', 'parkinson'],
-    'orthopedic': ['orthopedic', 'bone', 'fracture', 'joint', 'arthritis', 'osteoporosis', 'sprain', 'ligament'],
-    'gastrointestinal': ['gastrointestinal', 'gastro', 'stomach', 'intestine', 'digestive', 'ulcer', 'colitis', 'crohn'],
-    'renal': ['renal', 'kidney', 'nephro', 'dialysis', 'uremia', 'ckd', 'acute kidney'],
-    'hepatic': ['hepatic', 'liver', 'cirrhosis', 'hepatitis', 'jaundice'],
-    'endocrine': ['endocrine', 'thyroid', 'hormone', 'adrenal', 'pituitary', 'hyperthyroid', 'hypothyroid'],
-    'hematology': ['hematology', 'blood', 'anemia', 'leukemia', 'lymphoma', 'hemophilia', 'thrombosis'],
+    'cardiac': ['cardiac', 'heart', 'cardiovascular', 'coronary', 'myocardial', 'angina', 'arrhythmia'],
+    'hypertension': ['hypertension', 'high blood pressure', 'htn', 'elevated bp'],
+    'hypotension': ['hypotension', 'low blood pressure', 'low bp', 'shock'],
+    'heart_failure': ['heart failure', 'chf', 'congestive heart failure', 'cardiac failure'],
+    'respiratory': ['respiratory', 'pulmonary', 'lung', 'breathing'],
+    'asthma': ['asthma', 'asthmatic', 'bronchospasm', 'wheezing'],
+    'copd': ['copd', 'chronic obstructive', 'emphysema', 'chronic bronchitis'],
+    'pneumonia': ['pneumonia', 'lung infection', 'pneumonic'],
+    'neurological': ['neurological', 'neuro', 'brain'],
+    'stroke': ['stroke', 'cva', 'cerebrovascular', 'brain attack', 'ischemic', 'hemorrhagic'],
+    'seizure': ['seizure', 'epilepsy', 'convulsion', 'fit', 'epileptic'],
+    'migraine': ['migraine', 'severe headache', 'cluster headache'],
+    'alzheimer': ['alzheimer', 'dementia', 'cognitive decline', 'memory loss'],
+    'parkinson': ['parkinson', 'parkinsons', 'tremor', 'rigidity'],
+    'orthopedic': ['orthopedic', 'bone', 'musculoskeletal'],
+    'fracture': ['fracture', 'broken bone', 'break', 'fx'],
+    'arthritis': ['arthritis', 'joint inflammation', 'osteoarthritis', 'rheumatoid arthritis'],
+    'osteoporosis': ['osteoporosis', 'bone density', 'brittle bones'],
+    'gastrointestinal': ['gastrointestinal', 'gastro', 'digestive'],
+    'gastritis': ['gastritis', 'stomach inflammation', 'gastric'],
+    'ulcer': ['ulcer', 'peptic ulcer', 'gastric ulcer', 'duodenal ulcer'],
+    'ibs': ['ibs', 'irritable bowel', 'colitis', 'crohn'],
+    'renal': ['renal', 'kidney', 'nephro'],
+    'kidney_failure': ['kidney failure', 'renal failure', 'ckd', 'chronic kidney', 'esrd'],
+    'uti': ['uti', 'urinary tract infection', 'bladder infection', 'cystitis'],
+    'hepatic': ['hepatic', 'liver'],
+    'cirrhosis': ['cirrhosis', 'liver cirrhosis', 'hepatic fibrosis'],
+    'hepatitis': ['hepatitis', 'liver inflammation', 'hep a', 'hep b', 'hep c'],
+    'endocrine': ['endocrine', 'hormone'],
+    'thyroid': ['thyroid', 'hyperthyroid', 'hypothyroid', 'goiter', 'thyroiditis'],
+    'adrenal': ['adrenal', 'cushings', 'addisons', 'adrenal insufficiency'],
+    'hematology': ['hematology', 'blood disorder'],
+    'anemia': ['anemia', 'low hemoglobin', 'iron deficiency', 'anemic'],
+    'leukemia': ['leukemia', 'blood cancer', 'aml', 'all', 'cml', 'cll'],
+    'thrombosis': ['thrombosis', 'blood clot', 'dvt', 'embolism'],
     'oncology': ['oncology', 'cancer', 'tumor', 'malignant', 'metastasis', 'chemotherapy', 'radiation'],
-    'infectious': ['infectious', 'infection', 'viral', 'bacterial', 'fungal', 'sepsis', 'fever', 'covid'],
-    'dermatology': ['dermatology', 'skin', 'rash', 'eczema', 'psoriasis', 'dermatitis', 'melanoma'],
-    'ophthalmology': ['ophthalmology', 'eye', 'vision', 'cataract', 'glaucoma', 'retina', 'blindness'],
-    'ent': ['ent', 'ear', 'nose', 'throat', 'sinus', 'tonsil', 'hearing', 'otitis'],
-    'psychiatric': ['psychiatric', 'mental', 'depression', 'anxiety', 'psychosis', 'bipolar', 'schizophrenia'],
+    'infectious': ['infectious', 'infection', 'viral', 'bacterial', 'fungal', 'sepsis'],
+    'covid': ['covid', 'coronavirus', 'sars-cov-2', 'covid-19'],
+    'dermatology': ['dermatology', 'skin', 'dermatitis'],
+    'rash': ['rash', 'skin eruption', 'eczema', 'psoriasis'],
+    'melanoma': ['melanoma', 'skin cancer', 'malignant mole'],
+    'ophthalmology': ['ophthalmology', 'eye', 'vision', 'ocular'],
+    'cataract': ['cataract', 'lens opacity'],
+    'glaucoma': ['glaucoma', 'eye pressure', 'optic nerve'],
+    'ent': ['ent', 'ear nose throat'],
+    'sinusitis': ['sinusitis', 'sinus', 'sinus infection'],
+    'otitis': ['otitis', 'ear infection', 'ear pain'],
+    'psychiatric': ['psychiatric', 'mental', 'psychological'],
+    'depression': ['depression', 'depressed', 'major depressive', 'mdd'],
+    'anxiety_disorder': ['anxiety', 'panic', 'gad', 'anxiety disorder'],
+    'bipolar': ['bipolar', 'manic', 'mania'],
+    'schizophrenia': ['schizophrenia', 'psychosis', 'psychotic'],
     'gynecology': ['gynecology', 'gyneco', 'pregnancy', 'obstetric', 'menstrual', 'uterus', 'ovarian'],
-    'urology': ['urology', 'urinary', 'bladder', 'prostate', 'uti', 'incontinence'],
+    'urology': ['urology', 'urinary', 'bladder', 'prostate'],
     'rheumatology': ['rheumatology', 'rheumatic', 'lupus', 'rheumatoid', 'autoimmune', 'scleroderma'],
     'pediatric': ['pediatric', 'child', 'infant', 'newborn', 'neonatal'],
-    'geriatric': ['geriatric', 'elderly', 'aging', 'dementia'],
+    'geriatric': ['geriatric', 'elderly', 'aging'],
     'trauma': ['trauma', 'injury', 'accident', 'wound', 'burn', 'laceration'],
     'metabolic': ['metabolic', 'obesity', 'malnutrition', 'vitamin deficiency'],
     'immunology': ['immunology', 'immune', 'allergy', 'immunodeficiency', 'hiv', 'aids']
@@ -55,9 +92,18 @@ const FILE_TYPE_CATEGORIES = [
     'x_ray',
     'mri_scan',
     'ct_scan',
+    'ultrasound',
+    'ecg',
+    'eeg',
+    'pet_scan',
     'prescription',
     'lab_report',
+    'pathology_report',
+    'discharge_summary',
     'medical_certificate',
+    'vaccination_record',
+    'operation_notes',
+    'biopsy_report',
     'other'
 ];
 
@@ -83,7 +129,18 @@ const SYMPTOM_CATEGORIES = {
     'diarrhea': ['diarrhea', 'loose stool', 'frequent bowel'],
     'insomnia': ['insomnia', 'sleeplessness', 'difficulty sleeping'],
     'anxiety': ['anxiety', 'nervousness', 'worried', 'panic'],
-    'weight_loss': ['weight loss', 'losing weight', 'cachexia']
+    'weight_loss': ['weight loss', 'losing weight', 'cachexia'],
+    'hypertension': ['hypertension', 'high blood pressure', 'elevated bp', 'htn'],
+    'hypotension': ['hypotension', 'low blood pressure', 'low bp'],
+    'palpitations': ['palpitations', 'rapid heart', 'racing heart', 'tachycardia'],
+    'syncope': ['syncope', 'fainting', 'passed out', 'loss of consciousness'],
+    'tremor': ['tremor', 'shaking', 'trembling', 'shakes'],
+    'seizure': ['seizure', 'convulsion', 'fit', 'epileptic'],
+    'vision_problems': ['blurred vision', 'vision loss', 'double vision', 'diplopia'],
+    'hearing_loss': ['hearing loss', 'deafness', 'hard of hearing'],
+    'difficulty_swallowing': ['dysphagia', 'difficulty swallowing', 'trouble swallowing'],
+    'incontinence': ['incontinence', 'urinary incontinence', 'bladder control'],
+    'muscle_weakness': ['muscle weakness', 'weakness', 'paralysis', 'paresis']
 };
 
 const BODY_PART_CATEGORIES = {
@@ -123,7 +180,6 @@ const buckets = {
     bodyPart: {},       // e.g., { 'heart': Set([89, 123, 456, ...]) }
     ageGroup: {},       // e.g., { 'senior': Set([45, 67, 890, ...]) }
     gender: {},         // e.g., { 'male': Set([12, 34, 56, ...]) }
-    status: {},         // e.g., { 'open': Set([78, 90, 123, ...]) }
     leftover: new Set() // Records not in any specific bucket
 };
 
@@ -197,16 +253,25 @@ function categorizeFileType(fileType) {
     if (!fileType) return null;
     const normalized = normalizeText(fileType);
     
-    // Handle common variations
+    // Handle common variations - check if any variation matches
     const typeMap = {
-        'x_ray': ['x_ray', 'xray', 'x_ray'],
-        'mri_scan': ['mri_scan', 'mri'],
-        'ct_scan': ['ct_scan', 'ct'],
-        'blood_test': ['blood_test', 'blood'],
-        'lab_report': ['lab_report', 'lab'],
-        'medical_certificate': ['medical_certificate', 'certificate'],
-        'prescription': ['prescription', 'rx'],
-        'other': ['other']
+        'x_ray': ['x-ray', 'xray', 'x ray', 'x_ray', 'radiograph'],
+        'mri_scan': ['mri scan', 'mri_scan', 'mri', 'magnetic resonance'],
+        'ct_scan': ['ct scan', 'ct_scan', 'ct', 'cat scan', 'computed tomography'],
+        'ultrasound': ['ultrasound', 'ultra sound', 'sonography', 'usg', 'echo'],
+        'ecg': ['ecg', 'ekg', 'electrocardiogram', 'electro cardiogram', 'heart test'],
+        'eeg': ['eeg', 'electroencephalogram', 'brain wave', 'brainwave'],
+        'pet_scan': ['pet scan', 'pet_scan', 'pet', 'positron emission'],
+        'blood_test': ['blood test', 'blood_test', 'blood work', 'blood', 'cbc', 'hemogram'],
+        'lab_report': ['lab report', 'lab_report', 'laboratory', 'lab test', 'lab work'],
+        'pathology_report': ['pathology', 'pathology report', 'histopathology', 'biopsy'],
+        'discharge_summary': ['discharge summary', 'discharge', 'discharge note', 'discharge report'],
+        'medical_certificate': ['medical certificate', 'medical_certificate', 'certificate', 'med cert', 'fitness certificate'],
+        'prescription': ['prescription', 'rx', 'medicines', 'drugs', 'medication'],
+        'vaccination_record': ['vaccination', 'vaccine', 'immunization', 'vax record'],
+        'operation_notes': ['operation', 'surgery', 'operative', 'surgical notes', 'op notes'],
+        'biopsy_report': ['biopsy', 'biopsy report', 'tissue sample'],
+        'other': ['other', 'miscellaneous', 'misc']
     };
     
     // Check for matches
@@ -218,7 +283,8 @@ function categorizeFileType(fileType) {
         }
     }
     
-    return null;
+    // If no match found, return normalized version with underscores (for custom types)
+    return normalized.replace(/[\s-]+/g, '_');
 }
 
 /**
@@ -287,7 +353,6 @@ export async function initializeBuckets() {
                 bm.block_index,
                 bm.ipfs_cid,
                 bm.file_type,
-                bm.file_status,
                 bm.patient_id,
                 bm.doc as doctor_id,
                 p.date_of_birth,
@@ -395,14 +460,7 @@ export async function initializeBuckets() {
                         recordBuckets.push(`gender:${genderNorm}`);
                     }
                     
-                    // 7. STATUS BUCKET (from blockchain_metadata)
-                    if (record.file_status) {
-                        const statusNorm = normalizeText(record.file_status);
-                        addToBucket('status', statusNorm, record.block_index);
-                        recordBuckets.push(`status:${statusNorm}`);
-                    }
-                    
-                    // 8. LEFTOVER BUCKET (records with no specific categorization)
+                    // 7. LEFTOVER (if no buckets)
                     if (recordBuckets.length === 0) {
                         buckets.leftover.add(record.block_index);
                     }
@@ -428,7 +486,6 @@ export async function initializeBuckets() {
             Object.keys(buckets.bodyPart).length +
             Object.keys(buckets.ageGroup).length +
             Object.keys(buckets.gender).length +
-            Object.keys(buckets.status).length +
             (buckets.leftover.size > 0 ? 1 : 0);
         
         const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
@@ -442,7 +499,6 @@ export async function initializeBuckets() {
         console.log(`   ├─ Body Parts: ${Object.keys(buckets.bodyPart).length} buckets`);
         console.log(`   ├─ Age Groups: ${Object.keys(buckets.ageGroup).length} buckets`);
         console.log(`   ├─ Gender: ${Object.keys(buckets.gender).length} buckets`);
-        console.log(`   ├─ Status: ${Object.keys(buckets.status).length} buckets`);
         console.log(`   └─ Leftover: ${buckets.leftover.size} records`);
         console.log(`   ⏱️  Time: ${elapsedTime}s`);
         
@@ -507,12 +563,7 @@ export async function addRecordToBuckets(blockIndex, recordData, ipfsData = null
             addToBucket('gender', normalizeText(recordData.gender), blockIndex);
         }
         
-        // 7. Status (from blockchain_metadata)
-        if (recordData.file_status) {
-            addToBucket('status', normalizeText(recordData.file_status), blockIndex);
-        }
-        
-        // 8. Leftover
+        // 7. Leftover
         const hasCategory = diagnosisCategories.length > 0 || fileTypeCat || 
                            symptomCategories.length > 0 || bodyPartCategories.length > 0;
         if (!hasCategory) {
@@ -571,7 +622,6 @@ export function getBucketStats() {
             bodyPart: Object.keys(buckets.bodyPart).length,
             ageGroup: Object.keys(buckets.ageGroup).length,
             gender: Object.keys(buckets.gender).length,
-            status: Object.keys(buckets.status).length,
             leftover: buckets.leftover.size
         }
     };
