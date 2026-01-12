@@ -167,6 +167,10 @@ router.post('/upload', async (req, res) => {
             ? affected_body_parts.split(',').map(p => p.trim()).filter(p => p !== '')
             : [];
         
+        // Get patient name from patient_id
+        const patientRecord = patients.find(p => p.patient_id === patient_id);
+        const actualPatientName = patientRecord ? patientRecord.username : patient_name;
+        
         // Get doctor name from doc_id
         const doctorRecord = doctors.find(d => d.doctor_id === doc_id);
         const doctorName = doctorRecord ? `Dr. ${doctorRecord.username}` : doc_id;
@@ -180,7 +184,7 @@ router.post('/upload', async (req, res) => {
             
             // Patient information
             patient_id: patient_id,
-            patient_name: patient_name,
+            patient_name: actualPatientName,
             
             // Medical information
             primary_diagnosis: primary_diagnosis || disease, // Use primary_diagnosis if provided, else disease

@@ -75,20 +75,22 @@ export function captureGenerationSnapshot(
     ipfsCache,
     isCrossover = false,
     initialSampling = null,
-    fitnessEvaluation = null
+    fitnessEvaluation = null,
+    highFitnessRecord = null
 ) {
     const snapshot = {
         generation: generationNumber,
         isCrossover: isCrossover,
         initialSampling: initialSampling || null,
         fitnessEvaluation: fitnessEvaluation || null,
+        highFitnessRecord: highFitnessRecord,
         populations: []
     };
     
     // Capture each population (after selection to top 50)
     populations.forEach((population, popIndex) => {
-        // Get top 4 records from this population by fitness
-        const populationRecords = population
+        // Get top 10 records from this population by fitness
+        let populationRecords = population
             .map(blockIndex => ({
                 blockIndex,
                 fitness: fitnessMap.get(blockIndex) || 0,
@@ -96,7 +98,22 @@ export function captureGenerationSnapshot(
                 ipfsData: ipfsCache.get(blockIndex)
             }))
             .sort((a, b) => b.fitness - a.fitness)
-            .slice(0, 4);
+            .slice(0, 10);
+        
+        // If high fitness record exists and not in top 10, add it and re-sort
+        if (highFitnessRecord && !populationRecords.find(r => r.blockIndex === highFitnessRecord)) {
+            if (population.includes(highFitnessRecord)) {
+                const highFitnessData = {
+                    blockIndex: highFitnessRecord,
+                    fitness: fitnessMap.get(highFitnessRecord) || 0,
+                    block: allBlocks.find(b => b.block_index === highFitnessRecord),
+                    ipfsData: ipfsCache.get(highFitnessRecord)
+                };
+                populationRecords.push(highFitnessData);
+                // Re-sort to maintain descending order
+                populationRecords.sort((a, b) => b.fitness - a.fitness);
+            }
+        }
         
         // Get top fitness
         const topFitness = populationRecords[0]?.fitness || 0;
@@ -112,9 +129,10 @@ export function captureGenerationSnapshot(
                 blockIndex: r.blockIndex,
                 fitness: r.fitness.toFixed(2),
                 diagnosis: r.ipfsData?.primary_diagnosis || 'N/A',
-                patientId: r.block?.patient_id || 'N/A'
+                patientId: r.block?.patient_id || 'N/A',
+                isHighFitness: r.blockIndex === highFitnessRecord && r.fitness >= 80
             })),
-            neighborhoodBuckets: neighborhoodBuckets.slice(0, 5) // Top 5 buckets
+            neighborhoodBuckets: neighborhoodBuckets.slice(0, 12) // Top 12 buckets
         });
     });
     

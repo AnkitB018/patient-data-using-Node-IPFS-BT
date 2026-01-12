@@ -157,26 +157,29 @@ router.post('/upload', async (req, res) => {
         const medicationsArray = Array.isArray(medications) ? medications.filter(m => m && m.trim()) : [];
         const affectedPartsArray = affected_body_parts ? affected_body_parts.split(',').map(p => p.trim()).filter(p => p) : [];
 
-        // Create metadata object
+        // Get patient details
+        const patient = myPatients.find(p => p.patient_id === patient_id);
+        const patientName = patient?.username || 'Unknown';
+
+        // Create metadata object (using consistent lowercase keys)
         const metadata = {
-            'Patient ID': patient_id,
-            'Patient Name': myPatients.find(p => p.patient_id === patient_id)?.username || 'Unknown',
-            'File Type': file_type,
-            'Disease': disease,
-            'doctor': doctor,
-            'Uploaded By': `Dr. ${req.session.user.username}`,
-            'Timestamp': new Date().toISOString(),
-            'description': description || 'No additional notes',  // Lowercase to match admin route
-            'File Status': file_status || 'Open',
-            'file_data': file_base64,
-            'filename': filename,
-            'symptoms': symptomsArray,
-            'primary_diagnosis': disease,
-            'secondary_diagnoses': secondaryDiagArray,
-            'affected_body_parts': affectedPartsArray,
-            'treatments': treatmentsArray,
-            'medications': medicationsArray,
-            'followup_info': {
+            patient_id: patient_id,
+            patient_name: patientName,
+            file_type: file_type,
+            primary_diagnosis: disease,
+            doctor: doctor,
+            uploaded_by: `Dr. ${req.session.user.username}`,
+            timestamp: new Date().toISOString(),
+            description: description || 'No additional notes',
+            file_status: file_status || 'Open',
+            file_base64: file_base64,
+            filename: filename,
+            symptoms: symptomsArray,
+            secondary_diagnoses: secondaryDiagArray,
+            affected_body_parts: affectedPartsArray,
+            treatments_given: treatmentsArray,
+            medications: medicationsArray,
+            followup_info: {
                 required: followup_required || 'No',
                 date: followup_date || '',
                 notes: followup_notes || ''

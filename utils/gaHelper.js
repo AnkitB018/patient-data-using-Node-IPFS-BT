@@ -29,9 +29,9 @@ function calculateFitness(record, ipfsData, searchCriteria) {
         return '';
     };
 
-    // Diagnosis matching (weight: 30)
+    // Diagnosis matching (weight: 25)
     if (searchCriteria.diagnosis && ipfsData?.primary_diagnosis) {
-        const weight = 30;
+        const weight = 25;
         totalWeight += weight;
         const diagnosisText = normalize(ipfsData.primary_diagnosis);
         const searchDiagnosis = normalize(searchCriteria.diagnosis);
@@ -45,33 +45,55 @@ function calculateFitness(record, ipfsData, searchCriteria) {
         }
     }
 
-    // Symptoms matching (weight: 25)
+    // Symptoms matching (weight: 20)
     if (searchCriteria.symptoms && ipfsData?.symptoms) {
-        const weight = 25;
+        const weight = 20;
         totalWeight += weight;
+        
+        // Normalize and split both search and record symptoms
         const symptomsText = normalize(ipfsData.symptoms);
-        const searchSymptoms = normalize(searchCriteria.symptoms);
-        const symptomWords = searchSymptoms.split(',').map(s => s.trim()).filter(s => s.length > 2);
-        const matchCount = symptomWords.filter(word => symptomsText.includes(word)).length;
-        const matchScore = (matchCount / Math.max(symptomWords.length, 1)) * weight;
+        const recordSymptoms = symptomsText.split(',').map(s => s.trim()).filter(s => s.length > 0);
+        const searchSymptoms = normalize(searchCriteria.symptoms).split(',').map(s => s.trim()).filter(s => s.length > 2);
+        
+        // Count how many search symptoms are found in record symptoms
+        let matchCount = 0;
+        for (const searchSymptom of searchSymptoms) {
+            // Check if any record symptom contains this search symptom
+            if (recordSymptoms.some(recordSymptom => recordSymptom.includes(searchSymptom) || searchSymptom.includes(recordSymptom))) {
+                matchCount++;
+            }
+        }
+        
+        // Score based on percentage of search symptoms found
+        const matchScore = (matchCount / Math.max(searchSymptoms.length, 1)) * weight;
         score += matchScore;
     }
 
-    // Body parts matching (weight: 15)
+    // Body parts matching (weight: 12)
     if (searchCriteria.body_parts && ipfsData?.affected_body_parts) {
-        const weight = 15;
+        const weight = 12;
         totalWeight += weight;
+        
+        // Normalize and split both search and record body parts
         const bodyPartsText = normalize(ipfsData.affected_body_parts);
-        const searchParts = normalize(searchCriteria.body_parts);
-        const bodyPartWords = searchParts.split(',').map(s => s.trim()).filter(s => s.length > 2);
-        const matchCount = bodyPartWords.filter(word => bodyPartsText.includes(word)).length;
-        const matchScore = (matchCount / Math.max(bodyPartWords.length, 1)) * weight;
+        const recordParts = bodyPartsText.split(',').map(s => s.trim()).filter(s => s.length > 0);
+        const searchParts = normalize(searchCriteria.body_parts).split(',').map(s => s.trim()).filter(s => s.length > 2);
+        
+        // Count how many search parts are found in record parts
+        let matchCount = 0;
+        for (const searchPart of searchParts) {
+            if (recordParts.some(recordPart => recordPart.includes(searchPart) || searchPart.includes(recordPart))) {
+                matchCount++;
+            }
+        }
+        
+        const matchScore = (matchCount / Math.max(searchParts.length, 1)) * weight;
         score += matchScore;
     }
 
-    // Secondary diagnosis matching (weight: 15)
+    // Secondary diagnosis matching (weight: 8)
     if (searchCriteria.secondary_diagnosis && ipfsData?.secondary_diagnoses) {
-        const weight = 15;
+        const weight = 8;
         totalWeight += weight;
         const secondaryText = normalize(ipfsData.secondary_diagnoses);
         const searchSecondary = normalize(searchCriteria.secondary_diagnosis);
@@ -80,40 +102,56 @@ function calculateFitness(record, ipfsData, searchCriteria) {
         }
     }
 
-    // File type matching (weight: 10)
+    // File type matching (weight: 8)
     if (searchCriteria.file_type && record.file_type) {
-        const weight = 10;
+        const weight = 8;
         totalWeight += weight;
         if (normalize(record.file_type) === normalize(searchCriteria.file_type)) {
             score += weight;
         }
     }
 
-    // Treatments matching (weight: 12)
+    // Treatments matching (weight: 10)
     if (searchCriteria.treatments && ipfsData?.treatments_given) {
-        const weight = 12;
+        const weight = 10;
         totalWeight += weight;
+        
         const treatmentsText = normalize(ipfsData.treatments_given);
-        const searchTreatments = normalize(searchCriteria.treatments);
-        const treatmentWords = searchTreatments.split(',').map(s => s.trim()).filter(s => s.length > 2);
-        const matchCount = treatmentWords.filter(word => treatmentsText.includes(word)).length;
-        score += (matchCount / Math.max(treatmentWords.length, 1)) * weight;
+        const recordTreatments = treatmentsText.split(',').map(s => s.trim()).filter(s => s.length > 0);
+        const searchTreatments = normalize(searchCriteria.treatments).split(',').map(s => s.trim()).filter(s => s.length > 2);
+        
+        let matchCount = 0;
+        for (const searchTreatment of searchTreatments) {
+            if (recordTreatments.some(recordTreatment => recordTreatment.includes(searchTreatment) || searchTreatment.includes(recordTreatment))) {
+                matchCount++;
+            }
+        }
+        
+        score += (matchCount / Math.max(searchTreatments.length, 1)) * weight;
     }
 
-    // Medications matching (weight: 12)
+    // Medications matching (weight: 10)
     if (searchCriteria.medications && ipfsData?.medications) {
-        const weight = 12;
+        const weight = 10;
         totalWeight += weight;
+        
         const medicationsText = normalize(ipfsData.medications);
-        const searchMedications = normalize(searchCriteria.medications);
-        const medicationWords = searchMedications.split(',').map(s => s.trim()).filter(s => s.length > 2);
-        const matchCount = medicationWords.filter(word => medicationsText.includes(word)).length;
-        score += (matchCount / Math.max(medicationWords.length, 1)) * weight;
+        const recordMedications = medicationsText.split(',').map(s => s.trim()).filter(s => s.length > 0);
+        const searchMedications = normalize(searchCriteria.medications).split(',').map(s => s.trim()).filter(s => s.length > 2);
+        
+        let matchCount = 0;
+        for (const searchMedication of searchMedications) {
+            if (recordMedications.some(recordMedication => recordMedication.includes(searchMedication) || searchMedication.includes(recordMedication))) {
+                matchCount++;
+            }
+        }
+        
+        score += (matchCount / Math.max(searchMedications.length, 1)) * weight;
     }
 
-    // Description/Conditions/Notes matching (weight: 8)
+    // Description/Conditions/Notes matching (weight: 10)
     if (searchCriteria.conditions && (ipfsData?.description || ipfsData?.followup_info)) {
-        const weight = 8;
+        const weight = 10;
         totalWeight += weight;
         const conditionsText = normalize(ipfsData.description || '') + ' ' + normalize(ipfsData.followup_info || '');
         const searchConditions = normalize(searchCriteria.conditions);
@@ -131,9 +169,9 @@ function calculateFitness(record, ipfsData, searchCriteria) {
         }
     }
 
-    // Age range matching (weight: 10)
+    // Age range matching (weight: 8)
     if (searchCriteria.age_range && record.date_of_birth) {
-        const weight = 10;
+        const weight = 8;
         totalWeight += weight;
         try {
             const age = Math.floor((Date.now() - new Date(record.date_of_birth).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
@@ -173,10 +211,10 @@ function calculateNeighborhood(population, fitnessMap, allBuckets) {
         }
     }
     
-    // Sort buckets by score and return top 5-10
+    // Sort buckets by score and return top 12
     const sortedBuckets = Object.entries(bucketScores)
         .sort((a, b) => b[1] - a[1])
-        .slice(0, 8)
+        .slice(0, 12)
         .map(([bucket]) => bucket);
     
     return sortedBuckets;
@@ -243,7 +281,15 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
     const ipfsCache = new Map(); // blockIndex -> ipfsData
     
     // Get all data
-    const allBlocks = await getAllBlocks();
+    let allBlocks = await getAllBlocks();
+    
+    // Filter by doctor if doctorId is provided
+    if (searchCriteria.doctorId) {
+        console.log(`🔍 Filtering records for doctor: ${searchCriteria.doctorId}`);
+        allBlocks = allBlocks.filter(b => b.doc === searchCriteria.doctorId);
+        console.log(`✅ Found ${allBlocks.length} records for this doctor`);
+    }
+    
     const allBuckets = getAllBuckets();
     const totalRecords = allBlocks.filter(b => b.block_index !== 0).length;
     
@@ -328,26 +374,26 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
         neighborhoods[popIndex] = calculateNeighborhood(populations[popIndex], fitnessMap, allBuckets);
     }
     
-    // Capture Generation 1 snapshot (with initial sampling and fitness evaluation)
-    vizData.generations.push(
-        captureGenerationSnapshot(1, populations, fitnessMap, neighborhoods, allBlocks, ipfsCache, false, gen1InitialSampling, gen1FitnessEvaluation)
-    );
-    
-    // Check for 85% fitness in Gen 1
+    // Check for 80% fitness in Gen 1
     let bestFitness = Math.max(...Array.from(fitnessMap.values()));
     let foundHighFitness = false;
     let highFitnessRecord = null;
     
-    // Find the record with best fitness if >= 85%
-    if (bestFitness >= 85) {
+    // Find the record with best fitness if >= 80%
+    if (bestFitness >= 80) {
         for (const [blockIndex, fitness] of fitnessMap.entries()) {
-            if (fitness >= 85) {
+            if (fitness >= 80) {
                 foundHighFitness = true;
                 highFitnessRecord = blockIndex;
                 break;
             }
         }
     }
+    
+    // Capture Generation 1 snapshot (with initial sampling and fitness evaluation)
+    vizData.generations.push(
+        captureGenerationSnapshot(1, populations, fitnessMap, neighborhoods, allBlocks, ipfsCache, false, gen1InitialSampling, gen1FitnessEvaluation, highFitnessRecord)
+    );
     
     // ========================================
     // GENERATIONS 2+
@@ -393,8 +439,8 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
                     const fitness = calculateFitness(block, ipfsData, searchCriteria);
                     fitnessMap.set(blockIndex, fitness);
                     
-                    // Check for 85%+ fitness - STOP IMMEDIATELY
-                    if (fitness >= 85 && !foundHighFitness) {
+                    // Check for 80%+ fitness - STOP IMMEDIATELY
+                    if (fitness >= 80 && !foundHighFitness) {
                         foundHighFitness = true;
                         highFitnessRecord = blockIndex;
                         break; // Exit fitness evaluation loop
@@ -402,18 +448,28 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
                 }
             }
             
+            // Sort and keep top 50 (ALWAYS do this, even if high fitness found)
+            population.sort((a, b) => (fitnessMap.get(b) || 0) - (fitnessMap.get(a) || 0));
+            populations[popIndex] = population.slice(0, 50);
+            
             // If high fitness found, stop processing other populations
             if (foundHighFitness) {
                 break;
             }
-            
-            // Sort and keep top 50
-            population.sort((a, b) => (fitnessMap.get(b) || 0) - (fitnessMap.get(a) || 0));
-            populations[popIndex] = population.slice(0, 50);
         }
         
-        // If high fitness found, exit generation loop
+        // If high fitness found, capture snapshot and exit generation loop
         if (foundHighFitness) {
+            // Recalculate neighborhoods for all populations before snapshot
+            for (let popIndex = 0; popIndex < NUM_POPULATIONS; popIndex++) {
+                neighborhoods[popIndex] = calculateNeighborhood(populations[popIndex], fitnessMap, allBuckets);
+            }
+            
+            // Capture generation snapshot with the high fitness record
+            vizData.generations.push(
+                captureGenerationSnapshot(generation, populations, fitnessMap, neighborhoods, allBlocks, ipfsCache, false, null, null, highFitnessRecord)
+            );
+            
             break;
         }
         
@@ -466,7 +522,7 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
         
         // Capture generation snapshot
         vizData.generations.push(
-            captureGenerationSnapshot(generation, populations, fitnessMap, neighborhoods, allBlocks, ipfsCache, generation % 2 === 0)
+            captureGenerationSnapshot(generation, populations, fitnessMap, neighborhoods, allBlocks, ipfsCache, generation % 2 === 0, null, null, foundHighFitness ? highFitnessRecord : null)
         );
         
         generation++;

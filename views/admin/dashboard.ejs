@@ -2842,10 +2842,10 @@
                         </div>
                         
                         <div style="font-size: 0.7rem; color: rgba(255,255,255,0.6);">
-                            <strong style="font-size: 0.75rem;">Top 3:</strong>
-                            ${pop.sampleRecords.slice(0, 3).map(r => `
-                                <div style="margin-top: 6px; padding: 5px; background: rgba(255,255,255,0.05); border-radius: 4px;">
-                                    <div style="color: #10b981;">#${r.blockIndex} (${r.fitness}%)</div>
+                            <strong style="font-size: 0.75rem;">Top Records:</strong>
+                            ${pop.sampleRecords.slice(0, 8).map(r => `
+                                <div style="margin-top: 6px; padding: 5px; background: ${r.isHighFitness ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.05)'}; border: ${r.isHighFitness ? '2px solid #10b981' : 'none'}; border-radius: 4px; ${r.isHighFitness ? 'box-shadow: 0 0 10px rgba(16,185,129,0.3);' : ''}">
+                                    <div style="color: ${r.isHighFitness ? '#10b981' : '#10b981'}; ${r.isHighFitness ? 'font-weight: bold;' : ''}">#${r.blockIndex} (${r.fitness}%)${r.isHighFitness ? ' 🎯' : ''}</div>
                                     <div style="color: rgba(255,255,255,0.4); font-size: 0.65rem;">${r.diagnosis.substring(0, 25)}...</div>
                                 </div>
                             `).join('')}
@@ -2857,7 +2857,7 @@
                                     <i class="bi bi-compass me-1"></i>Top Neighborhoods:
                                 </div>
                                 <div style="display: flex; flex-wrap: wrap; gap: 3px;">
-                                    ${pop.neighborhoodBuckets.slice(0, 2).map(bucket => `
+                                    ${pop.neighborhoodBuckets.slice(0, 8).map(bucket => `
                                         <span style="background: rgba(59,130,246,0.2); padding: 2px 6px; border-radius: 3px; font-size: 0.6rem; color: #3b82f6;">
                                             ${bucket.split(':')[1] || bucket}
                                         </span>
