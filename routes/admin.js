@@ -11,6 +11,7 @@ import { addBlockToChain } from '../utils/blockchainHelper.js';
 import { getAllBuckets, getBucketStats } from '../utils/bucketManager.js';
 import { DIAGNOSIS_CATEGORIES, FILE_TYPE_CATEGORIES, SYMPTOM_CATEGORIES, BODY_PART_CATEGORIES, AGE_GROUPS } from '../utils/bucketManager.js';
 import { multiPopulationGA } from '../utils/gaHelper.js';
+import { formatVisualizationForDisplay } from '../utils/gaVisualizationHelper.js';
 
 const router = express.Router();
 
@@ -615,6 +616,34 @@ router.post('/api/ga-search', async (req, res) => {
             error: error.message,
             results: [],
             metrics: {}
+        });
+    }
+});
+
+// ===========================================
+// GET GA VISUALIZATION DATA
+// ===========================================
+
+router.get('/api/ga-visualization', (req, res) => {
+    try {
+        const vizData = formatVisualizationForDisplay();
+        
+        if (!vizData) {
+            return res.json({
+                success: false,
+                message: 'No visualization data available. Run a GA search first.'
+            });
+        }
+        
+        res.json({
+            success: true,
+            data: vizData
+        });
+    } catch (error) {
+        console.error('Visualization data error:', error);
+        res.json({
+            success: false,
+            error: error.message
         });
     }
 });

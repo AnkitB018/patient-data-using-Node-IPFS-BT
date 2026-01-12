@@ -5,8 +5,13 @@
 
 import { getAllBlocks } from './dbHelper.js';
 import { fetchFromIPFS } from './ipfsHelper.js';
-import { getAllBuckets, getRelevantBuckets } from './bucketManager.js';
-
+import { getAllBuckets, getRelevantBuckets } from './bucketManager.js';import {
+    initializeVisualization,
+    captureGenerationSnapshot,
+    captureCrossover,
+    captureRefinementGeneration,
+    saveVisualizationData
+} from './gaVisualizationHelper.js';
 /**
  * Calculate adaptive fitness score for a record based on search criteria
  */
@@ -230,6 +235,9 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
     
     const startTime = Date.now();
     
+    // Initialize visualization capture
+    const vizData = initializeVisualization();
+    
     // Data structures
     const fitnessMap = new Map(); // blockIndex -> fitness
     const exploredSet = new Set(); // Set of evaluated blockIndex
@@ -327,6 +335,11 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
         console.log(`  Population ${popIndex + 1} neighborhood: ${neighborhoods[popIndex].length} buckets`);
     }
     
+    // Capture Generation 1 snapshot
+    vizData.generations.push(
+        captureGenerationSnapshot(1, populations, fitnessMap, neighborhoods, allBlocks, ipfsCache, false)
+    );
+    
     // Check for 85% fitness
     let bestFitness = Math.max(...Array.from(fitnessMap.values()));
     console.log(`  Best fitness: ${bestFitness.toFixed(2)}%`);
@@ -412,6 +425,9 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
         if (generation % 2 === 0) {
             console.log('  🔄 Performing crossover...');
             
+            // Capture crossover operation for visualization
+            const crossoverExchanges = [];
+            
             // Store records to exchange
             const toExchange = [];
             for (let popIndex = 0; popIndex < NUM_POPULATIONS; popIndex++) {
@@ -428,6 +444,13 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
                 const nextPopIndex = (popIndex + 1) % NUM_POPULATIONS;
                 const receivedRecords = toExchange[popIndex];
                 
+                // Track crossover for visualization
+                crossoverExchanges.push({
+                    from: popIndex,
+                    to: nextPopIndex,
+                    ranks: [2, 4, 6, 8, 10]
+                });
+                
                 // Remove the exchanged records from current population
                 const exchangeIndices = [1, 3, 5, 7, 9];
                 const remaining = currentPop.filter((_, i) => !exchangeIndices.includes(i));
@@ -438,11 +461,19 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
                 populations[popIndex] = remaining.slice(0, 50);
             }
             
+            // Save crossover operation
+            vizData.crossovers.push(captureCrossover(generation, crossoverExchanges));
+            
             // Recalculate neighborhoods after crossover
             for (let popIndex = 0; popIndex < NUM_POPULATIONS; popIndex++) {
                 neighborhoods[popIndex] = calculateNeighborhood(populations[popIndex], fitnessMap, allBuckets);
             }
         }
+        
+        // Capture generation snapshot
+        vizData.generations.push(
+            captureGenerationSnapshot(generation, populations, fitnessMap, neighborhoods, allBlocks, ipfsCache, generation % 2 === 0)
+        );
         
         generation++;
         
@@ -510,8 +541,23 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
         }
         
         console.log(`  Refinement evaluated ${refinementEvals} new records (${refinementSamples.length - refinementEvals} already in cache)`);
+        
+        // Capture refinement generation
+        const triggerBlock = allBlocks.find(b => b.block_index === highFitnessRecord);
+        const triggerIPFS = ipfsCache.get(highFitnessRecord);
+        vizData.refinementGeneration = captureRefinementGeneration(
+            generation,
+            { blockIndex: highFitnessRecord, block: triggerBlock, ipfsData: triggerIPFS },
+            refinementSamples,
+            fitnessMap,
+            allBlocks,
+            ipfsCache
+        );
+        
         generation++; // Count refinement as a generation
     }
+    
+    vizData.totalGenerations = generation - 1;
     
     // ========================================
     // COLLECT TOP N RESULTS
@@ -548,6 +594,9 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
     }
     
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+    
+    // Save visualization data for last run
+    saveVisualizationData(vizData);
     
     console.log(`\n✅ Algorithm Complete!`);
     console.log(`   Generations: ${generation - 1}`);

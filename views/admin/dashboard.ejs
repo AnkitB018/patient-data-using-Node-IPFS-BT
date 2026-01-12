@@ -844,6 +844,20 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Visualization Button -->
+                <div class="row mt-5">
+                    <div class="col-md-12 text-center">
+                        <button onclick="showGAVisualization()" class="btn btn-lg" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 40px; border-radius: 12px; border: none; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+                            <i class="bi bi-diagram-3 me-2"></i>
+                            Show Algorithm Visualization
+                        </button>
+                        <p class="text-muted mt-2" style="font-size: 0.9rem;">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Visualize the last GA search run (generations, populations, crossovers)
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -2580,6 +2594,274 @@
         // Load initial blockchain data
         window.loadBlockchain(10);
         console.log('✅ Dashboard initialization complete');
+    </script>
+    
+    <!-- GA Visualization Modal -->
+    <div id="gaVizModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; overflow-y: auto;">
+        <div style="max-width: 95%; margin: 20px auto; background: #1e293b; border-radius: 20px; padding: 30px; position: relative;">
+            <!-- Close Button -->
+            <button onclick="closeGAVisualization()" style="position: absolute; top: 20px; right: 20px; background: rgba(239,68,68,0.2); border: 1px solid #ef4444; color: #ef4444; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 16px; transition: all 0.3s;">
+                <i class="bi bi-x-lg me-2"></i>Close
+            </button>
+            
+            <h2 style="color: #fff; margin-bottom: 10px;">
+                <i class="bi bi-diagram-3 me-2"></i>
+                Multi-Population Genetic Algorithm Visualization
+            </h2>
+            <p style="color: rgba(255,255,255,0.6); margin-bottom: 30px;">
+                Showing first 4 and last 3 generations with crossover operations
+            </p>
+            
+            <!-- Visualization Container -->
+            <div id="gaVizContent">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3" style="color: rgba(255,255,255,0.6);">Loading visualization data...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- GA Visualization Functions -->
+    <script>
+        window.showGAVisualization = async function() {
+            const modal = document.getElementById('gaVizModal');
+            const content = document.getElementById('gaVizContent');
+            
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            
+            try {
+                const response = await fetch('/admin/api/ga-visualization');
+                const result = await response.json();
+                
+                if (!result.success || !result.data) {
+                    content.innerHTML = `
+                        <div class="alert alert-warning text-center">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            ${result.message || 'No visualization data available. Please run a GA search first.'}
+                        </div>
+                    `;
+                    return;
+                }
+                
+                content.innerHTML = renderGAVisualization(result.data);
+            } catch (error) {
+                console.error('Error loading visualization:', error);
+                content.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-x-circle me-2"></i>
+                        Error loading visualization: ${error.message}
+                    </div>
+                `;
+            }
+        };
+        
+        window.closeGAVisualization = function() {
+            document.getElementById('gaVizModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        };
+        
+        function renderGAVisualization(data) {
+            let html = `
+                <div style="background: rgba(59,130,246,0.1); border-radius: 15px; padding: 20px; margin-bottom: 30px;">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <div style="font-size: 2rem; color: #3b82f6; font-weight: bold;">${data.totalGenerations}</div>
+                            <div style="color: rgba(255,255,255,0.6);">Total Generations</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div style="font-size: 2rem; color: #10b981; font-weight: bold;">${data.duration}s</div>
+                            <div style="color: rgba(255,255,255,0.6);">Duration</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div style="font-size: 2rem; color: #f59e0b; font-weight: bold;">${data.skippedGenerations}</div>
+                            <div style="color: rgba(255,255,255,0.6);">Generations Skipped</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // First 4 generations
+            html += '<h4 style="color: #3b82f6; margin-top: 30px; margin-bottom: 20px;"><i class="bi bi-play-circle me-2"></i>First 4 Generations</h4>';
+            data.firstGenerations.forEach((gen, idx) => {
+                html += renderGeneration(gen, idx < data.firstGenerations.length - 1);
+                
+                // Show crossover after gen 2 and gen 4
+                if (gen.generation === 2 || gen.generation === 4) {
+                    const crossover = data.crossovers.find(c => c.generation === gen.generation);
+                    if (crossover) {
+                        html += renderCrossover(crossover);
+                    }
+                }
+            });
+            
+            // Skipped generations indicator
+            if (data.skippedGenerations > 0) {
+                html += `
+                    <div style="text-align: center; margin: 40px 0;">
+                        <div style="display: inline-block; padding: 15px 30px; background: rgba(100,100,100,0.2); border-radius: 10px; border: 2px dashed rgba(255,255,255,0.3);">
+                            <i class="bi bi-three-dots" style="font-size: 2rem; color: rgba(255,255,255,0.4);"></i>
+                            <div style="color: rgba(255,255,255,0.6); margin-top: 10px;">
+                                ${data.skippedGenerations} generations skipped
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Last 3 generations
+            html += '<h4 style="color: #10b981; margin-top: 30px; margin-bottom: 20px;"><i class="bi bi-flag-fill me-2"></i>Last 3 Generations</h4>';
+            data.lastGenerations.forEach((gen, idx) => {
+                html += renderGeneration(gen, idx < data.lastGenerations.length - 1);
+            });
+            
+            // Refinement generation
+            if (data.refinementGeneration) {
+                html += '<h4 style="color: #f59e0b; margin-top: 30px; margin-bottom: 20px;"><i class="bi bi-star-fill me-2"></i>Refinement Generation (85%+ Found)</h4>';
+                html += renderRefinementGeneration(data.refinementGeneration);
+            }
+            
+            return html;
+        }
+        
+        function renderGeneration(gen, showArrow) {
+            let html = `
+                <div style="margin-bottom: ${showArrow ? '20px' : '40px'};">
+                    <div style="background: rgba(30,41,59,0.8); border: 2px solid ${gen.isCrossover ? '#f59e0b' : '#3b82f6'}; border-radius: 15px; padding: 20px;">
+                        <h5 style="color: ${gen.isCrossover ? '#f59e0b' : '#3b82f6'}; margin-bottom: 20px;">
+                            <i class="bi bi-${gen.isCrossover ? 'shuffle' : 'layers'} me-2"></i>
+                            Generation ${gen.generation}
+                            ${gen.isCrossover ? '<span style="font-size: 0.8rem; margin-left: 10px; padding: 4px 12px; background: rgba(245,158,11,0.2); border-radius: 6px;">After Crossover</span>' : ''}
+                        </h5>
+                        
+                        <div class="row">
+            `;
+            
+            gen.populations.forEach(pop => {
+                html += `
+                    <div class="col-md-${12 / Math.min(5, gen.populations.length)}" style="margin-bottom: 20px;">
+                        <div style="background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); border-radius: 10px; padding: 15px; height: 100%;">
+                            <div style="color: #3b82f6; font-weight: bold; margin-bottom: 10px; text-align: center;">
+                                Population ${pop.populationIndex}
+                            </div>
+                            <div style="text-align: center; font-size: 1.5rem; color: #10b981; font-weight: bold; margin-bottom: 10px;">
+                                ${pop.topFitness}%
+                            </div>
+                            <div style="text-align: center; color: rgba(255,255,255,0.5); font-size: 0.85rem; margin-bottom: 15px;">
+                                Size: ${pop.size} records
+                            </div>
+                            
+                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.7);">
+                                <strong>Top Records:</strong>
+                                ${pop.sampleRecords.slice(0, 3).map(r => `
+                                    <div style="margin-top: 8px; padding: 6px; background: rgba(255,255,255,0.05); border-radius: 5px;">
+                                        <div style="color: #10b981;">Block #${r.blockIndex} (${r.fitness}%)</div>
+                                        <div style="color: rgba(255,255,255,0.5); font-size: 0.7rem;">${r.diagnosis}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            
+                            ${pop.neighborhoodBuckets.length > 0 ? `
+                                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
+                                    <div style="color: rgba(255,255,255,0.6); font-size: 0.75rem; margin-bottom: 5px;">
+                                        <i class="bi bi-compass me-1"></i>Neighborhood:
+                                    </div>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                                        ${pop.neighborhoodBuckets.slice(0, 3).map(bucket => `
+                                            <span style="background: rgba(59,130,246,0.2); padding: 2px 8px; border-radius: 4px; font-size: 0.65rem; color: #3b82f6;">
+                                                ${bucket.split(':')[1] || bucket}
+                                            </span>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            if (showArrow) {
+                html += `
+                    <div style="text-align: center; margin: 20px 0;">
+                        <i class="bi bi-arrow-down" style="font-size: 2rem; color: rgba(59,130,246,0.5);"></i>
+                    </div>
+                `;
+            }
+            
+            return html;
+        }
+        
+        function renderCrossover(crossover) {
+            return `
+                <div style="margin: 30px 0; text-align: center;">
+                    <div style="display: inline-block; padding: 20px 40px; background: rgba(245,158,11,0.1); border: 2px solid #f59e0b; border-radius: 15px;">
+                        <h6 style="color: #f59e0b; margin-bottom: 15px;">
+                            <i class="bi bi-arrow-left-right me-2"></i>
+                            Crossover Operation (Generation ${crossover.generation})
+                        </h6>
+                        <div style="display: flex; justify-content: center; align-items: center; gap: 15px; flex-wrap: wrap;">
+                            ${crossover.exchanges.map(ex => `
+                                <div style="background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 8px; font-size: 0.85rem;">
+                                    <span style="color: #3b82f6;">Pop${ex.from}</span>
+                                    <i class="bi bi-arrow-right mx-2" style="color: #f59e0b;"></i>
+                                    <span style="color: #10b981;">Pop${ex.to}</span>
+                                    <div style="color: rgba(255,255,255,0.5); font-size: 0.75rem; margin-top: 5px;">
+                                        Ranks: ${ex.ranks.join(', ')}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderRefinementGeneration(refGen) {
+            return `
+                <div style="background: rgba(245,158,11,0.1); border: 2px solid #f59e0b; border-radius: 15px; padding: 25px; margin-bottom: 40px;">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <div style="font-size: 1.2rem; color: #f59e0b; margin-bottom: 10px;">
+                            <i class="bi bi-bullseye me-2"></i>
+                            Trigger Record: ${refGen.triggerFitness}% Fitness
+                        </div>
+                        <div style="color: rgba(255,255,255,0.6);">
+                            ${refGen.triggerDiagnosis}
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <span style="background: rgba(245,158,11,0.2); padding: 10px 20px; border-radius: 8px; display: inline-block;">
+                            Sampled ${refGen.sampledCount} additional records from trigger's neighborhood
+                        </span>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px;">
+                        ${refGen.topRecords.map(r => `
+                            <div style="background: rgba(255,255,255,0.05); border-radius: 10px; padding: 15px; text-align: center;">
+                                <div style="color: #10b981; font-weight: bold; font-size: 1.2rem;">
+                                    ${r.fitness}%
+                                </div>
+                                <div style="color: rgba(255,255,255,0.7); font-size: 0.85rem; margin-top: 5px;">
+                                    Block #${r.blockIndex}
+                                </div>
+                                <div style="color: rgba(255,255,255,0.5); font-size: 0.75rem; margin-top: 5px;">
+                                    ${r.diagnosis}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
     </script>
 </body>
 </html>
