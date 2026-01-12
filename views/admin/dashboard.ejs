@@ -1151,7 +1151,7 @@
         let lastSearchCriteria = {};
         
         // Tab Switching
-        function switchTab(tabName, clickedButton) {
+        switchTab = function(tabName, clickedButton) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             
@@ -1162,24 +1162,13 @@
             document.getElementById(tabName + '-tab').classList.add('active');
             
             // Load data when switching tabs
-            if (tabName === 'blockchain') loadBlockchain(10);
-            if (tabName === 'doctor-patient') loadDoctorPatientData();
-            if (tabName === 'ga-viz') loadBucketVisualization();
+            if (tabName === 'blockchain') window.loadBlockchain(10);
+            if (tabName === 'doctor-patient') window.loadDoctorPatientData();
+            if (tabName === 'ga-viz') window.loadBucketVisualization();
         }
         
-        // Initialize tab buttons with event listeners
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.tab-btn').forEach(button => {
-                button.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const tabName = this.getAttribute('data-tab');
-                    switchTab(tabName, this);
-                });
-            });
-        });
-        
         // Check IPFS Status
-        async function checkIPFSStatus() {
+        checkIPFSStatus = async function() {
             console.log('🔍 Checking IPFS status...');
             try {
                 const response = await fetch('/admin/api/ipfs-status');
@@ -1207,7 +1196,7 @@
         }
         
         // Load Blockchain
-        async function loadBlockchain(limit = 10) {
+        window.loadBlockchain = async function(limit = 10) {
             const container = document.getElementById('blockchainList');
             container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
             
@@ -1300,7 +1289,7 @@
         }
         
         // Search block by index
-        async function searchBlockByIndex() {
+        window.searchBlockByIndex = async function() {
             const blockIndex = document.getElementById('blockSearchInput').value;
             const container = document.getElementById('blockchainList');
             
@@ -1416,7 +1405,7 @@
         }
         
         // Load Patient Records
-        async function loadPatientRecords() {
+        window.loadPatientRecords = async function() {
             const patientId = document.getElementById('recordsPatientSelect').value;
             const container = document.getElementById('patientRecordsList');
             
@@ -1492,7 +1481,7 @@
         }
         
         // View Record with File Preview
-        async function viewRecord(cid) {
+        window.viewRecord = async function(cid) {
             const modal = new bootstrap.Modal(document.getElementById('filePreviewModal'));
             const content = document.getElementById('modalContent');
             modal.show();
@@ -1713,7 +1702,7 @@
         }
         
         // Load Patient Data for Editing
-        async function loadPatientData() {
+        window.loadPatientData = async function() {
             const patientId = document.getElementById('editPatientSelect').value;
             const form = document.getElementById('editPatientForm');
             const currentDisplay = document.getElementById('currentValuesDisplay');
@@ -1763,7 +1752,7 @@
         }
         
         // Update Patient Data
-        async function updatePatientData(e) {
+        updatePatientData = async function(e) {
             e.preventDefault();
             const form = e.target;
             const formData = new FormData(form);
@@ -1833,7 +1822,7 @@
             fileInput.addEventListener('change', handleFileSelect);
         }
         
-        function handleFileSelect() {
+        handleFileSelect = function() {
             const file = fileInput.files[0];
             if (file) {
                 document.getElementById('fileNameUpload').textContent = file.name;
@@ -1847,20 +1836,20 @@
             }
         }
         
-        function removeFile() {
+        removeFile = function() {
             fileInput.value = '';
             document.getElementById('file_base64').value = '';
             document.getElementById('filename').value = '';
             document.getElementById('filePreviewUpload').style.display = 'none';
         }
         
-        function updatePatientName() {
+        updatePatientName = function() {
             const select = document.getElementById('patient_id');
             const selectedOption = select.options[select.selectedIndex];
             document.getElementById('patient_name').value = selectedOption.getAttribute('data-name') || '';
         }
         
-        function handleUpload(e) {
+        handleUpload = function(e) {
             const btn = e.target.querySelector('button[type="submit"]');
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Uploading...';
@@ -1868,7 +1857,7 @@
         }
         
         // Doctor-Patient Management Functions
-        async function loadDoctorPatientData() {
+        window.loadDoctorPatientData = async function() {
             // Load doctors list
             try {
                 const response = await fetch('/admin/api/doctors');
@@ -1891,7 +1880,7 @@
             loadDoctorPatientRelations();
         }
         
-        async function loadDoctorPatientRelations() {
+        loadDoctorPatientRelations = async function() {
             const container = document.getElementById('doctorPatientList');
             container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
             
@@ -1929,7 +1918,7 @@
             }
         }
         
-        async function assignDoctor(event) {
+        assignDoctor = async function(event) {
             event.preventDefault();
             
             const doctorId = document.getElementById('selectDoctor').value;
@@ -1958,7 +1947,7 @@
             return false;
         }
         
-        async function removeRelation(doctorId, patientId) {
+        removeRelation = async function(doctorId, patientId) {
             if (!confirm('Are you sure you want to remove this doctor-patient relation?')) {
                 return;
             }
@@ -1983,42 +1972,34 @@
         
         // ==================== GA SEARCH FUNCTIONS ====================
         
-        async function performGASearch(event) {
+        window.performGASearch = async function(event) {
             event.preventDefault();
             
             const btn = document.getElementById('gaSearchBtn');
             const originalText = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Running GA...';
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Running Multi-Population GA...';
             
             const searchCriteria = {
                 file_type: document.getElementById('ga_file_type').value.trim(),
-                patient_id: document.getElementById('ga_patient_id').value.trim(),
-                current_conditions: document.getElementById('ga_conditions').value.trim(),
-                primary_diagnosis: document.getElementById('ga_primary_diagnosis').value.trim(),
+                diagnosis: document.getElementById('ga_primary_diagnosis').value.trim(),
                 symptoms: collectFieldValues('ga-symptom-field'),
-                affected_body_parts: document.getElementById('ga_body_parts').value.trim(),
-                medications: collectFieldValues('ga-medication-field'),
+                body_parts: document.getElementById('ga_body_parts').value.trim(),
+                secondary_diagnosis: collectFieldValues('ga-secondary-diagnosis-field'),
                 treatments: collectFieldValues('ga-treatment-field'),
-                secondary_diagnoses: collectFieldValues('ga-secondary-diagnosis-field'),
-                blood_group: document.getElementById('ga_blood_group').value.trim(),
+                medications: collectFieldValues('ga-medication-field'),
+                conditions: document.getElementById('ga_conditions')?.value.trim() || '',
                 gender: document.getElementById('ga_gender').value,
                 age_range: document.getElementById('ga_age_range').value,
-                doctor_id: document.getElementById('ga_doctor_id').value.trim(),
-                limit: parseInt(document.getElementById('ga_limit').value) || 10,
-                useAdaptive: true  // Enable adaptive GA
+                topN: parseInt(document.getElementById('ga_limit').value) || 10
             };
             
-            // Store for feedback
-            lastSearchCriteria = {...searchCriteria};
-            
             // Check if at least one criteria is provided
-            const hasSearchCriteria = searchCriteria.file_type || searchCriteria.patient_id || 
-                                      searchCriteria.current_conditions || searchCriteria.primary_diagnosis ||
-                                      searchCriteria.symptoms || searchCriteria.affected_body_parts ||
-                                      searchCriteria.medications || searchCriteria.treatments ||
-                                      searchCriteria.secondary_diagnoses || searchCriteria.blood_group || 
-                                      searchCriteria.gender || searchCriteria.age_range || searchCriteria.doctor_id;
+            const hasSearchCriteria = searchCriteria.file_type || searchCriteria.diagnosis ||
+                                      searchCriteria.symptoms || searchCriteria.body_parts ||
+                                      searchCriteria.secondary_diagnosis || searchCriteria.treatments ||
+                                      searchCriteria.medications || searchCriteria.conditions ||
+                                      searchCriteria.gender || searchCriteria.age_range;
             
             if (!hasSearchCriteria) {
                 alert('⚠️ Please fill in at least one search criterion');
@@ -2029,9 +2010,9 @@
             
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+                const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout
                 
-                const response = await fetch('/api/ga/recommend', {
+                const response = await fetch('/admin/api/ga-search', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(searchCriteria),
@@ -2045,7 +2026,7 @@
                 }
                 
                 const data = await response.json();
-                console.log('GA Response:', data);
+                console.log('Multi-Population GA Response:', data);
                 
                 if (data.success) {
                     displayGAResults(data);
@@ -2065,13 +2046,13 @@
             }
         }
         
-        function displayGAResults(data) {
+        displayGAResults = function(data) {
             const resultsSection = document.getElementById('gaResults');
             const resultsContent = document.getElementById('gaResultsContent');
             
             resultsSection.style.display = 'block';
             
-            if (data.recommendations.length === 0) {
+            if (!data.results || data.results.length === 0) {
                 resultsContent.innerHTML = `
                     <div class="alert alert-warning" style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.3);">
                         <i class="bi bi-exclamation-triangle me-2"></i>
@@ -2081,21 +2062,41 @@
                 return;
             }
             
+            const metrics = data.metrics || {};
+            
             let html = `
                 <div class="alert alert-success mb-4" style="background: rgba(0, 255, 127, 0.1); border: 1px solid rgba(0, 255, 127, 0.3);">
-                    <i class="bi bi-check-circle me-2"></i>
-                    <strong>Search Complete!</strong> Found ${data.recommendations.length} relevant records.
-                    ${data.isPersonalized ? '<br><small><i class="bi bi-stars me-1"></i>Using your personalized search preferences</small>' : ''}
-                    ${data.samplingEnabled && data.totalEvaluations ? `<br><small>⚡ Smart sampling: ${data.totalEvaluations} evaluations across ${data.generationsRun} generations (${data.totalRecordsAnalyzed} unique records)</small>` : ''}
+                    <h5 class="mb-3"><i class="bi bi-check-circle me-2"></i>Multi-Population GA Complete!</h5>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <strong><i class="bi bi-layers me-1"></i>Generations:</strong> ${metrics.generations || 'N/A'}
+                        </div>
+                        <div class="col-md-3">
+                            <strong><i class="bi bi-search me-1"></i>Evaluated:</strong> ${metrics.recordsEvaluated || 'N/A'}/${metrics.totalRecords || 'N/A'}
+                        </div>
+                        <div class="col-md-3">
+                            <strong><i class="bi bi-percent me-1"></i>Coverage:</strong> ${metrics.evaluationPercentage || 'N/A'}%
+                        </div>
+                        <div class="col-md-3">
+                            <strong><i class="bi bi-clock me-1"></i>Duration:</strong> ${metrics.duration || 'N/A'}
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-md-12">
+                            <strong><i class="bi bi-trophy me-1"></i>Top Fitness:</strong> ${metrics.topFitness || 'N/A'}%
+                            <small class="ms-2" style="color: rgba(255,255,255,0.7);">Found ${data.results.length} relevant records</small>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="row">
             `;
             
-            data.recommendations.forEach((record, index) => {
-                const matchColor = record.matchPercentage >= 80 ? '#00ff7f' : 
-                                 record.matchPercentage >= 60 ? '#00d2ff' : 
-                                 record.matchPercentage >= 40 ? '#ffd700' : '#ff6b6b';
+            data.results.forEach((record, index) => {
+                const fitness = record.fitness || 0;
+                const matchColor = fitness >= 80 ? '#00ff7f' : 
+                                 fitness >= 60 ? '#00d2ff' : 
+                                 fitness >= 40 ? '#ffd700' : '#ff6b6b';
                 
                 html += `
                     <div class="col-md-6 mb-3">
@@ -2103,82 +2104,45 @@
                             <div class="d-flex justify-content-between align-items-start mb-3">
                                 <h5 style="color: ${matchColor};">
                                     <i class="bi bi-file-earmark-medical me-2"></i>
-                                    Record #${index + 1}
+                                    #${index + 1} - Block #${record.block_index}
                                 </h5>
-                                <span class="badge" style="background: ${matchColor}; color: #000; font-size: 1.2rem; padding: 8px 15px;">
-                                    ${record.matchPercentage}% Match
+                                <span class="badge" style="background: ${matchColor}; color: #000; font-size: 1.1rem; padding: 6px 12px;">
+                                    ${fitness.toFixed(1)}% Match
                                 </span>
                             </div>
                             
                             <div class="record-details">
                                 <div class="mb-2">
-                                    <i class="bi bi-fingerprint me-2"></i>
-                                    <strong>Block Index:</strong> ${record.block_index}
-                                </div>
-                                <div class="mb-2">
                                     <i class="bi bi-person me-2"></i>
-                                    <strong>Patient:</strong> ${record.patient_username || 'N/A'} (ID: ${record.patient_id})
+                                    <strong>Patient ID:</strong> ${record.patient_id || 'N/A'}
                                 </div>
                                 <div class="mb-2">
                                     <i class="bi bi-file-text me-2"></i>
                                     <strong>File Type:</strong> ${record.file_type || 'N/A'}
                                 </div>
-                                ${record.doctor_username ? `
                                 <div class="mb-2">
                                     <i class="bi bi-person-badge me-2"></i>
-                                    <strong>Doctor:</strong> ${record.doctor_username} (ID: ${record.doctor_id})
+                                    <strong>Doctor:</strong> ${record.doctor || 'N/A'}
                                 </div>
-                                ` : ''}
-                                ${record.current_conditions ? `
                                 <div class="mb-2">
                                     <i class="bi bi-heart-pulse me-2"></i>
-                                    <strong>Conditions:</strong> ${record.current_conditions}
-                                </div>
-                                ` : ''}
-                                ${record.gender ? `
-                                <div class="mb-2">
-                                    <i class="bi bi-gender-ambiguous me-2"></i>
-                                    <strong>Gender:</strong> ${record.gender}
-                                </div>
-                                ` : ''}
-                                ${record.blood_group ? `
-                                <div class="mb-2">
-                                    <i class="bi bi-droplet me-2"></i>
-                                    <strong>Blood Group:</strong> ${record.blood_group}
-                                </div>
-                                ` : ''}
-                                <div class="mb-2">
-                                    <i class="bi bi-clock me-2"></i>
-                                    <strong>Date:</strong> ${new Date(parseInt(record.timestamp, 10)).toLocaleString()}
+                                    <strong>Diagnosis:</strong> ${record.diagnosis || 'N/A'}
                                 </div>
                                 <div class="mb-2">
-                                    <i class="bi bi-link-45deg me-2"></i>
-                                    <strong>IPFS CID:</strong> 
-                                    <code style="font-size: 0.75rem; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;">
-                                        ${record.ipfs_cid ? record.ipfs_cid.substring(0, 30) + '...' : 'N/A'}
-                                    </code>
+                                    <i class="bi bi-thermometer-half me-2"></i>
+                                    <strong>Symptoms:</strong> ${record.symptoms || 'N/A'}
                                 </div>
-                                
-                                <hr style="border-color: rgba(255,255,255,0.2); margin: 15px 0;">
-                                
-                                <div class="fitness-details" style="font-size: 0.85rem; color: rgba(255,255,255,0.7);">
-                                    <div><strong>Fitness Score:</strong> ${record.fitnessScore}</div>
-                                    <div><strong>Raw Score:</strong> ${record.rawScore} / ${record.maxScore}</div>
+                                <div class="mb-2">
+                                    <i class="bi bi-body-text me-2"></i>
+                                    <strong>Body Parts:</strong> ${record.body_parts || 'N/A'}
                                 </div>
-                                
+                                ${record.ipfs_cid && record.ipfs_cid !== 'N/A' ? `
                                 <div class="mt-3">
-                                    <button class="btn btn-sm btn-primary w-100 mb-2" onclick="viewRecord('${record.ipfs_cid}', '${record.file_type}', ${record.block_index})">
-                                        <i class="bi bi-eye me-2"></i>View Full Record
+                                    <button class="btn btn-primary btn-sm" onclick="viewRecord('${record.ipfs_cid}')">
+                                        <i class="bi bi-eye me-1"></i>View Full Record
                                     </button>
-                                    <div class="d-flex gap-2" id="feedback-${record.block_index}">
-                                        <button class="btn btn-sm btn-success flex-fill" onclick="recordFeedback(${record.block_index}, true, ${record.matchPercentage})">
-                                            <i class="bi bi-hand-thumbs-up me-1"></i>Useful
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-secondary flex-fill" onclick="recordFeedback(${record.block_index}, false, ${record.matchPercentage})">
-                                            <i class="bi bi-hand-thumbs-down me-1"></i>Not Useful
-                                        </button>
-                                    </div>
                                 </div>
+                                ` : ''}
                             </div>
                         </div>
                     </div>
@@ -2193,7 +2157,7 @@
         }
         
         // Record feedback on search results
-        async function recordFeedback(blockIndex, wasUseful, matchPercentage) {
+        recordFeedback = async function(blockIndex, wasUseful, matchPercentage) {
             try {
                 const feedbackDiv = document.getElementById(`feedback-${blockIndex}`);
                 
@@ -2212,11 +2176,12 @@
                 
                 if (data.success) {
                     // Update UI to show feedback recorded
+                    const evolvingMessage = data.willEvolveWeights ? '<br><small>⚡ Evolving your search preferences...</small>' : '';
                     feedbackDiv.innerHTML = `
                         <div class="alert alert-success mb-0 py-1 px-2" style="font-size: 0.85rem;">
                             <i class="bi bi-check-circle me-1"></i>
                             Feedback recorded! (${data.totalFeedback} total)
-                            ${data.willEvolveWeights ? '<br><small>⚡ Evolving your search preferences...</small>' : ''}
+                            ${evolvingMessage}
                         </div>
                     `;
                     
@@ -2339,7 +2304,7 @@
             return values.join(', ');
         }
         
-        function clearGASearch() {
+        window.clearGASearch = function() {
             document.getElementById('gaSearchForm').reset();
             document.getElementById('gaResults').style.display = 'none';
             
@@ -2368,7 +2333,7 @@
         let selectedCategory = null;
 
         // Load bucket statistics and categories
-        async function loadBucketVisualization() {
+        window.loadBucketVisualization = async function() {
             try {
                 // Load stats
                 const statsResponse = await fetch('/admin/api/buckets/stats');
@@ -2466,7 +2431,7 @@
         }
 
         // Select a category
-        function selectCategory(categoryKey) {
+        window.selectCategory = function(categoryKey) {
             selectedCategory = categoryKey;
             
             // Highlight selected category
@@ -2526,7 +2491,7 @@
         }
 
         // Select a bucket and display block indices
-        async function selectBucket(categoryKey, bucketName) {
+        window.selectBucket = async function(categoryKey, bucketName) {
             // Highlight selected bucket
             document.querySelectorAll('.bucket-item').forEach(item => {
                 item.style.background = 'rgba(16,185,129,0.1)';
@@ -2591,11 +2556,30 @@
             html += '</div>';
             blockList.innerHTML = html;
         }
-
+        
+        // ===========================================
+        // INITIALIZATION - MUST BE AT THE END
+        // ===========================================
         console.log('🚀 Dashboard initializing...');
+        
+        // Setup tab event listeners
+        document.querySelectorAll('.tab-btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const tabName = this.getAttribute('data-tab');
+                switchTab(tabName, this);
+            });
+        });
+        console.log('✅ Tab event listeners attached');
+        
+        // Start IPFS status check
         checkIPFSStatus();
         setInterval(checkIPFSStatus, 30000); // Check every 30 seconds
         console.log('✅ IPFS status check scheduled');
+        
+        // Load initial blockchain data
+        window.loadBlockchain(10);
+        console.log('✅ Dashboard initialization complete');
     </script>
 </body>
 </html>

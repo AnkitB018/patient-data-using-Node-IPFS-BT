@@ -10,6 +10,7 @@ import { uploadMetadataToIPFS, fetchFromIPFS, checkIPFSConnection } from '../uti
 import { addBlockToChain } from '../utils/blockchainHelper.js';
 import { getAllBuckets, getBucketStats } from '../utils/bucketManager.js';
 import { DIAGNOSIS_CATEGORIES, FILE_TYPE_CATEGORIES, SYMPTOM_CATEGORIES, BODY_PART_CATEGORIES, AGE_GROUPS } from '../utils/bucketManager.js';
+import { multiPopulationGA } from '../utils/gaHelper.js';
 
 const router = express.Router();
 
@@ -588,6 +589,33 @@ router.get('/api/buckets/:category/:bucketName', async (req, res) => {
     } catch (error) {
         console.error('Bucket records error:', error);
         res.json({ success: false, error: error.message });
+    }
+});
+
+// ===========================================
+// MULTI-POPULATION GA SEARCH
+// ===========================================
+
+// Search using multi-population genetic algorithm
+router.post('/api/ga-search', async (req, res) => {
+    try {
+        const searchCriteria = req.body;
+        const topN = parseInt(req.body.topN) || 10;
+        
+        console.log('\n🔍 Multi-Population GA Search Request:', searchCriteria);
+        
+        // Run the multi-population GA
+        const result = await multiPopulationGA(searchCriteria, topN);
+        
+        res.json(result);
+    } catch (error) {
+        console.error('GA Search error:', error);
+        res.json({ 
+            success: false, 
+            error: error.message,
+            results: [],
+            metrics: {}
+        });
     }
 });
 
