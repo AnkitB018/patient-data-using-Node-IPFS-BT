@@ -29,9 +29,9 @@ function calculateFitness(record, ipfsData, searchCriteria) {
         return '';
     };
 
-    // Diagnosis matching (weight: 25)
+    // Diagnosis matching (weight: 28)
     if (searchCriteria.diagnosis && ipfsData?.primary_diagnosis) {
-        const weight = 25;
+        const weight = 28;
         totalWeight += weight;
         const diagnosisText = normalize(ipfsData.primary_diagnosis);
         const searchDiagnosis = normalize(searchCriteria.diagnosis);
@@ -45,9 +45,9 @@ function calculateFitness(record, ipfsData, searchCriteria) {
         }
     }
 
-    // Symptoms matching (weight: 20)
+    // Symptoms matching (weight: 18)
     if (searchCriteria.symptoms && ipfsData?.symptoms) {
-        const weight = 20;
+        const weight = 18;
         totalWeight += weight;
         
         // Normalize and split both search and record symptoms
@@ -91,9 +91,9 @@ function calculateFitness(record, ipfsData, searchCriteria) {
         score += matchScore;
     }
 
-    // Secondary diagnosis matching (weight: 8)
+    // Secondary diagnosis matching (weight: 10)
     if (searchCriteria.secondary_diagnosis && ipfsData?.secondary_diagnoses) {
-        const weight = 8;
+        const weight = 10;
         totalWeight += weight;
         const secondaryText = normalize(ipfsData.secondary_diagnoses);
         const searchSecondary = normalize(searchCriteria.secondary_diagnosis);
@@ -102,9 +102,9 @@ function calculateFitness(record, ipfsData, searchCriteria) {
         }
     }
 
-    // File type matching (weight: 8)
+    // File type matching (weight: 6)
     if (searchCriteria.file_type && record.file_type) {
-        const weight = 8;
+        const weight = 6;
         totalWeight += weight;
         if (normalize(record.file_type) === normalize(searchCriteria.file_type)) {
             score += weight;
@@ -149,9 +149,9 @@ function calculateFitness(record, ipfsData, searchCriteria) {
         score += (matchCount / Math.max(searchMedications.length, 1)) * weight;
     }
 
-    // Description/Conditions/Notes matching (weight: 10)
+    // Description/Conditions/Notes matching (weight: 8)
     if (searchCriteria.conditions && (ipfsData?.description || ipfsData?.followup_info)) {
-        const weight = 10;
+        const weight = 8;
         totalWeight += weight;
         const conditionsText = normalize(ipfsData.description || '') + ' ' + normalize(ipfsData.followup_info || '');
         const searchConditions = normalize(searchCriteria.conditions);
@@ -160,18 +160,18 @@ function calculateFitness(record, ipfsData, searchCriteria) {
         score += (matchCount / Math.max(conditionWords.length, 1)) * weight;
     }
 
-    // Gender matching (weight: 5)
+    // Gender matching (weight: 4)
     if (searchCriteria.gender && record.gender) {
-        const weight = 5;
+        const weight = 4;
         totalWeight += weight;
         if (normalize(record.gender) === normalize(searchCriteria.gender)) {
             score += weight;
         }
     }
 
-    // Age range matching (weight: 8)
+    // Age range matching (weight: 6)
     if (searchCriteria.age_range && record.date_of_birth) {
-        const weight = 8;
+        const weight = 6;
         totalWeight += weight;
         try {
             const age = Math.floor((Date.now() - new Date(record.date_of_birth).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
@@ -307,6 +307,29 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
     // ========================================
     console.log('\n📍 GEN 1: Initializing populations');
     
+    // Display fitness weights configuration
+    console.log('\n⚖️  FITNESS WEIGHTS CONFIGURATION:');
+    console.log('   Primary Diagnosis:     28% (Highest Priority)');
+    console.log('   Symptoms:              18%');
+    console.log('   Body Parts:            12%');
+    console.log('   Secondary Diagnosis:   10%');
+    console.log('   Treatments:            10%');
+    console.log('   Medications:           10%');
+    console.log('   Conditions:             8%');
+    console.log('   File Type:              6%');
+    console.log('   Age Range:              6%');
+    console.log('   Gender:                 4%');
+    console.log('   ─────────────────────────');
+    console.log('   Total Possible:       112%\n');
+    
+    console.log('🎯 GRADUATED THRESHOLDS:');
+    console.log('   Gen 1:      95% required');
+    console.log('   Gen 2:      90% required');
+    console.log('   Gen 3-5:    85% required');
+    console.log('   Gen 6-9:    80% required');
+    console.log('   Gen 10-15:  77% required');
+    console.log('   Gen 16+:    72% required\n');
+    
     // Track initial sampling and fitness evaluation for visualization
     const gen1InitialSampling = [];
     const gen1FitnessEvaluation = [];
@@ -374,15 +397,15 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
         neighborhoods[popIndex] = calculateNeighborhood(populations[popIndex], fitnessMap, allBuckets);
     }
     
-    // Check for 80% fitness in Gen 1
+    // Check for 95% fitness in Gen 1 (graduated threshold)
     let bestFitness = Math.max(...Array.from(fitnessMap.values()));
     let foundHighFitness = false;
     let highFitnessRecord = null;
     
-    // Find the record with best fitness if >= 80%
-    if (bestFitness >= 80) {
+    // Find the record with best fitness if >= 95%
+    if (bestFitness >= 95) {
         for (const [blockIndex, fitness] of fitnessMap.entries()) {
-            if (fitness >= 80) {
+            if (fitness >= 95) {
                 foundHighFitness = true;
                 highFitnessRecord = blockIndex;
                 break;
@@ -439,8 +462,16 @@ export async function multiPopulationGA(searchCriteria, topN = 10) {
                     const fitness = calculateFitness(block, ipfsData, searchCriteria);
                     fitnessMap.set(blockIndex, fitness);
                     
-                    // Check for 80%+ fitness - STOP IMMEDIATELY
-                    if (fitness >= 80 && !foundHighFitness) {
+                    // Graduated threshold based on generation
+                    let threshold;
+                    if (generation === 2) threshold = 90;
+                    else if (generation >= 3 && generation <= 5) threshold = 85;
+                    else if (generation >= 6 && generation <= 9) threshold = 80;
+                    else if (generation >= 10 && generation <= 15) threshold = 77;
+                    else threshold = 72; // Gen 16+
+                    
+                    // Check for threshold fitness - STOP IMMEDIATELY
+                    if (fitness >= threshold && !foundHighFitness) {
                         foundHighFitness = true;
                         highFitnessRecord = blockIndex;
                         break; // Exit fitness evaluation loop

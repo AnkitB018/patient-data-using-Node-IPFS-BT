@@ -2110,7 +2110,6 @@
                         <div class="alert alert-success mb-4" style="background: rgba(0, 255, 127, 0.25); border: 2px solid rgba(0, 255, 127, 0.6); color: #00ff7f; font-weight: 500;">
                             <i class="bi bi-check-circle me-2"></i>
                             <strong>Search Complete!</strong> Found ${data.recommendations.length} relevant records.
-                            ${data.isPersonalized ? '<br><small><i class="bi bi-stars me-1"></i>Using your personalized search preferences</small>' : ''}
                             ${data.samplingEnabled && data.totalEvaluations ? `<br><small>⚡ Smart sampling: ${data.totalEvaluations} evaluations across ${data.generationsRun} generations (${data.totalRecordsAnalyzed} unique records)</small>` : ''}
                         </div>
                         

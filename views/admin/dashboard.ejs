@@ -2181,70 +2181,6 @@
             resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
         
-        // Record feedback on search results
-        recordFeedback = async function(blockIndex, wasUseful, matchPercentage) {
-            try {
-                const feedbackDiv = document.getElementById(`feedback-${blockIndex}`);
-                
-                const response = await fetch('/api/ga/feedback', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        blockIndex,
-                        wasUseful,
-                        matchPercentage,
-                        searchCriteria: lastSearchCriteria
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Update UI to show feedback recorded
-                    const evolvingMessage = data.willEvolveWeights ? '<br><small>⚡ Evolving your search preferences...</small>' : '';
-                    feedbackDiv.innerHTML = `
-                        <div class="alert alert-success mb-0 py-1 px-2" style="font-size: 0.85rem;">
-                            <i class="bi bi-check-circle me-1"></i>
-                            Feedback recorded! (${data.totalFeedback} total)
-                            ${evolvingMessage}
-                        </div>
-                    `;
-                    
-                    // Trigger weight evolution if needed
-                    if (data.willEvolveWeights) {
-                        setTimeout(async () => {
-                            const evolveResponse = await fetch('/api/ga/evolve-weights', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' }
-                            });
-                            const evolveData = await evolveResponse.json();
-                            
-                            if (evolveData.success) {
-                                console.log('✅ Weights evolved successfully!');
-                                // Show notification
-                                const notification = document.createElement('div');
-                                notification.className = 'alert alert-success position-fixed';
-                                notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
-                                notification.innerHTML = `
-                                    <i class="bi bi-stars me-2"></i>
-                                    <strong>Your search got smarter!</strong><br>
-                                    <small>Personalized weights updated based on your preferences.</small>
-                                `;
-                                document.body.appendChild(notification);
-                                setTimeout(() => notification.remove(), 5000);
-                            }
-                        }, 1000);
-                    }
-                } else {
-                    feedbackDiv.innerHTML = '<small class="text-danger">Failed to record feedback</small>';
-                }
-                
-            } catch (error) {
-                console.error('Feedback error:', error);
-                alert('Failed to record feedback');
-            }
-        }
-        
         // GA Search - Add/Remove field functions
         function addGASymptom() {
             const container = document.getElementById('ga_symptoms_container');
@@ -2739,6 +2675,15 @@
         }
         
         function renderGeneration(gen, showArrow) {
+            // Determine threshold for this generation
+            let threshold;
+            if (gen.generation === 1) threshold = 95;
+            else if (gen.generation === 2) threshold = 90;
+            else if (gen.generation >= 3 && gen.generation <= 5) threshold = 85;
+            else if (gen.generation >= 6 && gen.generation <= 9) threshold = 80;
+            else if (gen.generation >= 10 && gen.generation <= 15) threshold = 77;
+            else threshold = 72; // Gen 16+
+            
             let html = `
                 <div style="margin-bottom: ${showArrow ? '20px' : '40px'};">
                     <div style="background: rgba(30,41,59,0.8); border: 2px solid ${gen.isCrossover ? '#f59e0b' : '#3b82f6'}; border-radius: 15px; padding: 20px;">
@@ -2746,6 +2691,9 @@
                             <i class="bi bi-${gen.isCrossover ? 'shuffle' : 'layers'} me-2"></i>
                             Generation ${gen.generation}
                             ${gen.isCrossover ? '<span style="font-size: 0.8rem; margin-left: 10px; padding: 4px 12px; background: rgba(245,158,11,0.2); border-radius: 6px;">After Crossover</span>' : ''}
+                            <span style="font-size: 0.75rem; margin-left: 10px; padding: 4px 10px; background: rgba(16,185,129,0.2); border-radius: 6px; color: #10b981;">
+                                🎯 ${threshold}% Threshold
+                            </span>
                         </h5>
             `;
             

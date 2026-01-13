@@ -93,7 +93,6 @@ router.post('/recommend', async (req, res) => {
                 affected_body_parts: r.body_parts,
                 ipfs_cid: r.ipfs_cid
             })),
-            isPersonalized: false,
             samplingEnabled: true,
             totalEvaluations: result.metrics.recordsEvaluated,
             generationsRun: result.metrics.generations,

@@ -121,6 +121,15 @@ export function captureGenerationSnapshot(
         // Format neighborhood buckets
         const neighborhoodBuckets = neighborhoods[popIndex] || [];
         
+        // Determine threshold for this generation
+        let threshold;
+        if (generationNumber === 1) threshold = 95;
+        else if (generationNumber === 2) threshold = 90;
+        else if (generationNumber >= 3 && generationNumber <= 5) threshold = 85;
+        else if (generationNumber >= 6 && generationNumber <= 9) threshold = 80;
+        else if (generationNumber >= 10 && generationNumber <= 15) threshold = 77;
+        else threshold = 72; // Gen 16+
+        
         snapshot.populations.push({
             populationIndex: popIndex + 1,
             size: population.length,
@@ -130,7 +139,7 @@ export function captureGenerationSnapshot(
                 fitness: r.fitness.toFixed(2),
                 diagnosis: r.ipfsData?.primary_diagnosis || 'N/A',
                 patientId: r.block?.patient_id || 'N/A',
-                isHighFitness: r.blockIndex === highFitnessRecord && r.fitness >= 80
+                isHighFitness: r.blockIndex === highFitnessRecord && r.fitness >= threshold
             })),
             neighborhoodBuckets: neighborhoodBuckets.slice(0, 12) // Top 12 buckets
         });

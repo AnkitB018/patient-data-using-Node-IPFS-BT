@@ -1,87 +1,60 @@
-# Medical Records Management System
-## Blockchain + IPFS
+# Medical Records System
+Blockchain + IPFS based medical records management
 
-A decentralized patient record management system using blockchain technology and IPFS for secure, immutable medical data storage.
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Node.js (v16 or higher)
+## Requirements
+- Node.js v16+
 - Python 3.8+
-- IPFS Desktop or CLI
+- PostgreSQL 13+
+- IPFS daemon
 
-### Installation
+## Setup
 
-1. **Install Node.js dependencies:**
-   ```powershell
-   npm install
-   ```
-
-2. **Install Python dependencies:**
-   ```powershell
-   pip install flask flask-cors
-   ```
-
-3. **Start IPFS:**
-   - Open IPFS Desktop, or
-   - Run in terminal: `ipfs daemon`
-
-4. **Start Blockchain API (Terminal 1):**
-   ```powershell
-   python flask_blockchain_api.py
-   ```
-
-5. **Start Web Server (Terminal 2):**
-   ```powershell
-   npm start
-   ```
-
-6. **Open browser:**
-   ```
-   http://localhost:3000
-   ```
-
----
-
-## 📁 Project Structure
-
-```
-├── server.js                 # Express web server
-├── flask_blockchain_api.py   # Blockchain REST API
-├── Blockchain.py             # Blockchain implementation
-├── routes/                   # Express routes
-├── views/                    # EJS templates
-├── utils/                    # Helper functions
-├── public/                   # Static assets
-├── users.json                # User database (temporary)
-└── blockchain.json           # Blockchain data
+1. Install dependencies:
+```bash
+npm install
+pip install flask flask-cors
 ```
 
----
+2. Configure PostgreSQL:
+- Create database: `Medical_project`
+- Import schema from `DB_backup/Medical_project.sql`
+- Update credentials in `utils/dbHelper.js`
 
-## 🎯 Features
+3. Start services:
+```bash
+# Terminal 1 - IPFS
+ipfs daemon
 
-✅ User authentication (admin & patient roles)  
-✅ Upload medical records to IPFS  
-✅ Store metadata on blockchain  
-✅ View patient records  
-✅ Blockchain visualization  
-✅ Patient profile management  
+# Terminal 2 - Blockchain API
+python flask_blockchain_api.py
 
----
+# Terminal 3 - Web Server
+npm start
+```
 
-## 🔮 Coming Soon
+4. Access: `http://localhost:3000`
 
-🔄 PostgreSQL database  
-🔄 GA-based access control  
-🔄 Smart contracts  
-🔄 Multi-signature approvals  
-🔄 Advanced search & filtering  
+## Features
+- Secure medical record storage using IPFS
+- Blockchain metadata verification
+- Multi-role access (Admin, Doctor, Patient)
+- Genetic Algorithm based record search
+- Doctor-patient consent management
+- Record analytics and visualization
 
----
+## Project Structure
+```
+routes/          - API endpoints
+views/           - Frontend templates
+utils/           - Helper functions (DB, IPFS, GA, Blockchain)
+public/          - Static assets
+Blockchain.py    - Blockchain implementation
+```
 
-## 📝 License
+## Login Credentials
+Check database for test accounts or register new users.
 
-MIT License
+## Notes
+- Requires active IPFS daemon for file operations
+- Blockchain API must run before web server
+- PostgreSQL connection required for all features
